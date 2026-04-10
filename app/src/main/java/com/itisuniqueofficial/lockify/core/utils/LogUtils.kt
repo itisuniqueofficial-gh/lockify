@@ -36,9 +36,7 @@ object LogUtils {
 
         runCatching {
             val file = File(context.filesDir, SECURITY_LOGS)
-            if (!file.exists()) {
-                file.createNewFile()
-            }
+            if (!file.exists()) file.createNewFile()
             file.appendText(Instant.now().toString() + " D " + tag + ": " + message + "\n")
         }
     }
@@ -54,80 +52,90 @@ object LogUtils {
             .onFailure { Log.e(TAG, "Error opening external link: $url", it) }
     }
 
+    /**
+     * Exports the security/audit log file.
+     *
+     * If logging was never enabled or the file is empty, a placeholder file is
+     * created so the export always succeeds with a meaningful message.
+     *
+     * Returns a content URI via FileProvider, or null only on a hard I/O failure.
+     */
     fun exportAuditLogs(): Uri? {
-        val file = File(context.filesDir, SECURITY_LOGS)
-        return if (file.exists()) {
+        return try {
+            val file = File(context.filesDir, SECURITY_LOGS)
+
+            if (!file.exists() || file.length() == 0L) {
+                // Create a placeholder so the share sheet always opens
+                file.parentFile?.mkdirs()
+                file.writeText(
+                    "Lockify Security Logs\n" +
+                    "=====================\n" +
+                    "No security events have been recorded yet.\n\n" +
+                    "To capture events, enable Debug Logging in Settings > Advanced > Logging.\n\n" +
+                    "Exported: ${Instant.now()}\n" +
+                    "Package:  ${context.packageName}\n"
+                )
+            }
+
             FileProvider.getUriForFile(
                 context,
                 "${context.packageName}.fileprovider",
                 file
             )
-        } else {
+        } catch (e: Exception) {
+            Log.e(TAG, "Error exporting audit logs", e)
             null
         }
     }
 
+    /**
+     * Exports the logcat output to a cache file.
+     *
+     * Must be called from a background thread — logcat reading is blocking I/O.
+     * Returns a content URI via FileProvider, or null on failure.
+     */
     fun exportLogs(): Uri? {
         val file = File(context.cacheDir, FILE_NAME)
-        try {
-            if (file.exists()) {
-                file.delete()
-            }
+        return try {
+            file.delete()
             file.createNewFile()
 
-            val process = Runtime.getRuntime().exec("logcat -d")
-
+            val process = Runtime.getRuntime().exec("logcat -d -v threadtime")
             process.inputStream.bufferedReader().use { reader ->
-                file.writer().use { writer ->
+                file.bufferedWriter().use { writer ->
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                         reader.transferTo(writer)
                     } else {
-                        reader.forEachLine { line ->
-                            writer.write(line + "\n")
-                        }
+                        reader.forEachLine { line -> writer.write(line + "\n") }
                     }
                 }
             }
+            process.waitFor()
 
-            return FileProvider.getUriForFile(
+            if (file.length() == 0L) {
+                file.writeText("No logcat output captured.\nExported: ${Instant.now()}\n")
+            }
+
+            FileProvider.getUriForFile(
                 context,
                 "${context.packageName}.fileprovider",
                 file
             )
-
         } catch (e: Exception) {
             Log.e(TAG, "Error exporting logs", e)
-            return null
+            null
         }
     }
 
-    /**
-     * Clear all security and audit logs.
-     * Called when the app is updated.
-     */
     fun clearAllLogs() {
         try {
-            val securityLogFile = File(context.filesDir, SECURITY_LOGS)
-            if (securityLogFile.exists()) {
-                securityLogFile.delete()
-                Log.d(TAG, "Cleared security logs")
-            }
-            
-            val appLogFile = File(context.cacheDir, FILE_NAME)
-            if (appLogFile.exists()) {
-                appLogFile.delete()
-                Log.d(TAG, "Cleared app logs")
-            }
+            File(context.filesDir, SECURITY_LOGS).takeIf { it.exists() }?.delete()
+            File(context.cacheDir, FILE_NAME).takeIf { it.exists() }?.delete()
         } catch (e: Exception) {
             Log.e(TAG, "Error clearing logs", e)
         }
     }
 
-    /**
-     * Purge log entries older than 3 days from both audit and app log files.
-     * This prevents logs from growing indefinitely.
-     * Runs asynchronously to avoid blocking the main thread.
-     */
     fun purgeOldLogs() {
         thread(name = "LogPurgeThread", isDaemon = true) {
             purgeOldLogsFromFile(File(context.filesDir, SECURITY_LOGS), "audit")
@@ -136,55 +144,30 @@ object LogUtils {
     }
 
     private fun purgeOldLogsFromFile(logFile: File, logType: String) {
+        if (!logFile.exists()) return
         try {
-            if (!logFile.exists()) {
-                return
-            }
-
-            val tempDir = context.cacheDir
-            val tempLogFile = File(tempDir, logFile.name + ".processing")
-            val backupFile = File(tempDir, logFile.name + ".backup")
-
+            val tempFile = File(context.cacheDir, logFile.name + ".processing")
+            val backupFile = File(context.cacheDir, logFile.name + ".backup")
             try {
                 logFile.copyTo(backupFile, overwrite = true)
-
-                val threeDaysAgo = Instant.now().minus(7, ChronoUnit.DAYS)
-                var purgedCount = 0
-                var keptCount = 0
-
+                val cutoff = Instant.now().minus(7, ChronoUnit.DAYS)
+                var purged = 0
+                var kept = 0
                 backupFile.bufferedReader().use { reader ->
-                    tempLogFile.bufferedWriter().use { writer ->
+                    tempFile.bufferedWriter().use { writer ->
                         reader.forEachLine { line ->
-                            try {
-                                val timestampStr = line.substringBefore(" ")
-                                val timestamp = Instant.parse(timestampStr)
-
-                                if (timestamp.isAfter(threeDaysAgo)) {
-                                    writer.write(line)
-                                    writer.newLine()
-                                    keptCount++
-                                } else {
-                                    purgedCount++
-                                }
-                            } catch (_: Exception) {
-                                writer.write(line)
-                                writer.newLine()
-                                keptCount++
-                            }
+                            val keep = try {
+                                Instant.parse(line.substringBefore(" ")).isAfter(cutoff)
+                            } catch (_: Exception) { true }
+                            if (keep) { writer.write(line); writer.newLine(); kept++ }
+                            else purged++
                         }
                     }
                 }
-
-                if (keptCount == 0) {
-                    logFile.delete()
-                    tempLogFile.delete()
-                    Log.d(TAG, "Deleted $logType log file - all entries were older than 3 days")
-                } else if (purgedCount > 0) {
-                    tempLogFile.copyTo(logFile, overwrite = true)
-                    tempLogFile.delete()
-                    Log.d(TAG, "Purged $purgedCount old $logType log entries")
-                } else {
-                    tempLogFile.delete()
+                when {
+                    kept == 0 -> { logFile.delete(); tempFile.delete() }
+                    purged > 0 -> { tempFile.copyTo(logFile, overwrite = true); tempFile.delete() }
+                    else -> tempFile.delete()
                 }
             } finally {
                 backupFile.delete()
@@ -194,4 +177,3 @@ object LogUtils {
         }
     }
 }
-

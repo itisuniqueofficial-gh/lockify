@@ -10,6 +10,10 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.biometric.BiometricManager
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -190,6 +194,7 @@ fun SettingsScreen(
     }
 
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    val scope = rememberCoroutineScope()
 
     Scaffold(
         modifier = Modifier
@@ -381,22 +386,30 @@ fun SettingsScreen(
                             title = stringResource(R.string.settings_Screen_export_audit),
                             subtitle = stringResource(R.string.settings_screen_export_audit_desc),
                             onClick = {
-                                val uri = LogUtils.exportAuditLogs()
-                                if (uri != null) {
-                                    val shareIntent = Intent(Intent.ACTION_SEND).apply {
-                                        type = "text/plain"
-                                        putExtra(Intent.EXTRA_STREAM, uri)
-                                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                // exportAuditLogs() only does file I/O — safe to call inline
+                                // but wrap in coroutine for consistency and to avoid any jank
+                                scope.launch(Dispatchers.IO) {
+                                    val uri = LogUtils.exportAuditLogs()
+                                    withContext(Dispatchers.Main) {
+                                        if (uri != null) {
+                                            val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                                                type = "text/plain"
+                                                putExtra(Intent.EXTRA_STREAM, uri)
+                                                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                            }
+                                            // FLAG_GRANT_READ_URI_PERMISSION must also be on
+                                            // the chooser intent so all target apps can read it
+                                            val chooser = Intent.createChooser(shareIntent, "Share security logs")
+                                                .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                            context.startActivity(chooser)
+                                        } else {
+                                            Toast.makeText(
+                                                context,
+                                                context.getString(R.string.settings_screen_export_logs_error),
+                                                Toast.LENGTH_SHORT
+                                            ).show()
+                                        }
                                     }
-                                    context.startActivity(
-                                        Intent.createChooser(shareIntent, "Share audit logs")
-                                    )
-                                } else {
-                                    Toast.makeText(
-                                        context,
-                                        context.getString(R.string.settings_screen_export_logs_error),
-                                        Toast.LENGTH_SHORT
-                                    ).show()
                                 }
                             }
                         ),
@@ -405,22 +418,27 @@ fun SettingsScreen(
                             title = stringResource(R.string.settings_screen_export_logs_title),
                             subtitle = stringResource(R.string.settings_screen_export_logs_desc),
                             onClick = {
-                                val uri = LogUtils.exportLogs()
-                                if (uri != null) {
-                                    val shareIntent = Intent(Intent.ACTION_SEND).apply {
-                                        type = "text/plain"
-                                        putExtra(Intent.EXTRA_STREAM, uri)
-                                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                // exportLogs() runs logcat — must be on a background thread
+                                scope.launch(Dispatchers.IO) {
+                                    val uri = LogUtils.exportLogs()
+                                    withContext(Dispatchers.Main) {
+                                        if (uri != null) {
+                                            val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                                                type = "text/plain"
+                                                putExtra(Intent.EXTRA_STREAM, uri)
+                                                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                            }
+                                            val chooser = Intent.createChooser(shareIntent, "Share debug logs")
+                                                .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                            context.startActivity(chooser)
+                                        } else {
+                                            Toast.makeText(
+                                                context,
+                                                context.getString(R.string.settings_screen_export_logs_error),
+                                                Toast.LENGTH_SHORT
+                                            ).show()
+                                        }
                                     }
-                                    context.startActivity(
-                                        Intent.createChooser(shareIntent, "Share logs")
-                                    )
-                                } else {
-                                    Toast.makeText(
-                                        context,
-                                        context.getString(R.string.settings_screen_export_logs_error),
-                                        Toast.LENGTH_SHORT
-                                    ).show()
                                 }
                             }
                         ),
