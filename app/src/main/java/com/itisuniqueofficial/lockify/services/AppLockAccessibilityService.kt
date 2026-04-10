@@ -117,10 +117,14 @@ class AppLockAccessibilityService : AccessibilityService() {
     }
 
     private fun handleAccessibilityEvent(event: AccessibilityEvent) {
-        if (appLockRepository.isAntiUninstallEnabled() &&
-            event.packageName == DEVICE_ADMIN_SETTINGS_PACKAGE
-        ) {
-            checkForDeviceAdminDeactivation(event)
+        // Anti-uninstall: intercept uninstall confirmation for protected apps
+        if (appLockRepository.isAntiUninstallEnabled()) {
+            // Guard Lockify's own Device Admin from being deactivated
+            if (event.packageName == DEVICE_ADMIN_SETTINGS_PACKAGE) {
+                checkForDeviceAdminDeactivation(event)
+            }
+            // Intercept uninstall confirmation dialogs for per-app protected packages
+            interceptUninstallAttempt(event)
         }
 
         if (!appLockRepository.isProtectEnabled() || !isServiceRunning) return
@@ -307,6 +311,111 @@ class AppLockAccessibilityService : AccessibilityService() {
         }
     }
 
+    /**
+     * Intercepts uninstall confirmation dialogs for apps in the anti-uninstall protected list.
+     *
+     * Android routes uninstall confirmations through the package installer. When the user
+     * confirms an uninstall, the package installer shows a dialog. We detect that dialog,
+     * check if the target package is in our protected list, and if so block the action by
+     * navigating away and showing the Lockify lock screen.
+     *
+     * Known package installer packages across Android versions and OEMs:
+     * - com.android.packageinstaller (AOSP)
+     * - com.google.android.packageinstaller (GMS)
+     * - com.miui.packageinstaller (MIUI)
+     * - com.samsung.android.packageinstaller (Samsung)
+     */
+    private fun interceptUninstallAttempt(event: AccessibilityEvent) {
+        if (event.eventType != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED &&
+            event.eventType != AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED
+        ) return
+
+        val pkg = event.packageName?.toString() ?: return
+
+        // Only care about package installer screens
+        if (!isPackageInstallerPackage(pkg)) return
+
+        val className = event.className?.toString() ?: ""
+        val eventText = event.text.joinToString(" ").lowercase()
+
+        // Detect uninstall confirmation screen/dialog
+        val isUninstallScreen = className.contains("UninstallActivity", ignoreCase = true) ||
+                className.contains("UninstallConfirm", ignoreCase = true) ||
+                className.contains("UninstallAppProgress", ignoreCase = true) ||
+                eventText.contains("uninstall") ||
+                eventText.contains("do you want to uninstall") ||
+                eventText.contains("remove this app")
+
+        if (!isUninstallScreen) return
+
+        // Find which protected app is being uninstalled by scanning the window content
+        val protectedApps = appLockRepository.getAntiUninstallApps()
+        if (protectedApps.isEmpty()) return
+
+        val targetPackage = findTargetPackageFromUninstallScreen(protectedApps) ?: return
+
+        LogUtils.d(TAG, "Uninstall attempt detected for protected app: $targetPackage")
+
+        // Block: navigate away immediately, then show lock screen
+        try {
+            performGlobalAction(GLOBAL_ACTION_BACK)
+        } catch (e: Exception) {
+            logError("Error performing back action during uninstall block", e)
+        }
+
+        // Show Lockify lock screen so user must authenticate to proceed
+        showLockScreenOverlay(targetPackage, pkg)
+    }
+
+    private fun isPackageInstallerPackage(packageName: String): Boolean {
+        return packageName == "com.android.packageinstaller" ||
+                packageName == "com.google.android.packageinstaller" ||
+                packageName == "com.miui.packageinstaller" ||
+                packageName == "com.samsung.android.packageinstaller" ||
+                packageName.contains("packageinstaller", ignoreCase = true)
+    }
+
+    /**
+     * Tries to identify which protected app is being uninstalled by inspecting
+     * the accessibility window content for matching package names or app labels.
+     */
+    private fun findTargetPackageFromUninstallScreen(protectedApps: Set<String>): String? {
+        return try {
+            val root = rootInActiveWindow ?: return null
+            val windowText = buildString {
+                collectNodeText(root, this)
+            }.lowercase()
+            root.recycle()
+
+            // Check if any protected package name or its label appears in the window text
+            for (pkg in protectedApps) {
+                if (windowText.contains(pkg.lowercase())) return pkg
+                // Also check app label
+                try {
+                    val appInfo = packageManager.getApplicationInfo(pkg, 0)
+                    val label = packageManager.getApplicationLabel(appInfo).toString().lowercase()
+                    if (label.isNotBlank() && windowText.contains(label)) return pkg
+                } catch (_: Exception) { /* app may not be installed */ }
+            }
+            null
+        } catch (e: Exception) {
+            logError("Error scanning uninstall screen for protected package", e)
+            null
+        }
+    }
+
+    private fun collectNodeText(node: android.view.accessibility.AccessibilityNodeInfo, sb: StringBuilder) {
+        try {
+            node.text?.let { sb.append(it).append(' ') }
+            node.contentDescription?.let { sb.append(it).append(' ') }
+            for (i in 0 until node.childCount) {
+                val child = node.getChild(i) ?: continue
+                collectNodeText(child, sb)
+                child.recycle()
+            }
+        } catch (_: Exception) { /* ignore node access errors */ }
+    }
+
     private fun checkForDeviceAdminDeactivation(event: AccessibilityEvent) {
         LogUtils.d(TAG, "Checking for device admin deactivation")
 
@@ -325,13 +434,14 @@ class AppLockAccessibilityService : AccessibilityService() {
     }
 
     private fun isDeactivationAttempt(event: AccessibilityEvent): Boolean {
+        val appName = "Lockify"
         val isAccessibilitySettings = event.className in ACCESSIBILITY_SETTINGS_CLASSES &&
-                event.text.any { it.contains("App Lock") }
+                event.text.any { it.contains(appName, ignoreCase = true) }
         val isSubSettings = event.className == "com.android.settings.SubSettings" &&
-                event.text.any { it.contains("App Lock") }
+                event.text.any { it.contains(appName, ignoreCase = true) }
         val isAlertDialog = event.packageName == "com.google.android.packageinstaller" &&
                 event.className == "android.app.AlertDialog" &&
-                event.text.toString().lowercase().contains("app lock")
+                event.text.toString().lowercase().contains(appName.lowercase())
         return isAccessibilitySettings || isSubSettings || isAlertDialog
     }
 
