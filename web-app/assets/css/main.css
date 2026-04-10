@@ -501,3 +501,168 @@ html, body { max-width: 100%; overflow-x: hidden; }
 @media (max-width: 360px) {
   .pricing-card { padding: 20px 14px; }
 }
+
+/* ============================================================
+   RESPONSIVE HARDENING — overflow, word-break, grid fixes
+   ============================================================ */
+
+/* --- Global overflow protection --- */
+*, *::before, *::after { min-width: 0; }
+html, body { overflow-x: hidden; max-width: 100%; }
+
+/* --- Safe text wrapping for long strings --- */
+code, .download-info-value, .contact-link-value,
+.footer-pkg, .breadcrumb, .changelog-version,
+.update-title, .prose p, .prose li {
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+/* code blocks (package names, URLs) */
+code {
+  word-break: break-all;
+  white-space: normal;
+  display: inline-block;
+  max-width: 100%;
+}
+
+/* --- Buttons: allow wrapping on very narrow screens --- */
+.btn {
+  white-space: normal;
+  text-align: center;
+  word-break: break-word;
+}
+/* Keep single-word buttons from wrapping unnecessarily */
+.btn-sm { white-space: nowrap; }
+
+/* Play Store button: allow text to wrap on small screens */
+.play-store-btn {
+  flex-wrap: wrap;
+  max-width: 100%;
+}
+.play-store-text-main { word-break: break-word; }
+
+/* --- Download info grid: smarter responsive layout --- */
+.download-info-grid {
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+}
+
+/* Package field: always full-width so the long name has room */
+.download-info-item--wide {
+  grid-column: 1 / -1;
+}
+
+/* --- Download card: tighter padding on mobile --- */
+@media (max-width: 600px) {
+  .download-card { padding: 20px 16px; }
+  .download-info-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
+}
+@media (max-width: 400px) {
+  .download-info-grid { grid-template-columns: 1fr; }
+}
+
+/* --- Contact link values: prevent URL overflow --- */
+.contact-link-item { min-width: 0; }
+.contact-link-text { min-width: 0; overflow: hidden; }
+.contact-link-value {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+  display: block;
+}
+
+/* --- Hero: prevent overflow on very small screens --- */
+.hero-badge { flex-wrap: wrap; }
+.hero-title { overflow-wrap: break-word; word-break: break-word; }
+.hero-desc { overflow-wrap: break-word; }
+.hero-meta-item { flex-shrink: 0; }
+
+/* --- Announcement bar: allow wrapping --- */
+.announcement-bar { word-break: break-word; }
+
+/* --- Changelog: prevent long version strings overflowing --- */
+.changelog-entry { overflow: hidden; }
+.changelog-version { overflow-wrap: break-word; word-break: break-word; }
+.changelog-item { overflow-wrap: break-word; word-break: break-word; }
+
+/* --- FAQ: question text must wrap, not overflow --- */
+.faq-question {
+  gap: 12px;
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+/* Keep chevron from shrinking away */
+.faq-chevron { flex-shrink: 0; margin-left: auto; padding-left: 8px; }
+
+/* --- Footer: prevent long package name overflowing --- */
+.footer-bottom { overflow-wrap: break-word; word-break: break-word; }
+.footer-pkg code { word-break: break-all; }
+
+/* --- Prose pages (privacy, terms): safe wrapping --- */
+.prose { overflow-wrap: break-word; word-break: break-word; }
+.prose h2, .prose h3 { overflow-wrap: break-word; }
+
+/* --- Page hero: title wrapping on mobile --- */
+.page-hero-title { overflow-wrap: break-word; word-break: break-word; }
+.page-hero-desc { overflow-wrap: break-word; }
+
+/* --- Pricing card: safe on narrow screens --- */
+.pricing-card { overflow-wrap: break-word; word-break: break-word; }
+.pricing-features li { overflow-wrap: break-word; word-break: break-word; }
+
+/* --- Update cards: title wrapping --- */
+.update-title { overflow-wrap: break-word; word-break: break-word; }
+.update-desc { overflow-wrap: break-word; }
+
+/* --- Feature cards: safe wrapping --- */
+.feature-title { overflow-wrap: break-word; }
+.feature-desc { overflow-wrap: break-word; }
+
+/* --- Why section items --- */
+.why-item-title { overflow-wrap: break-word; }
+.why-item-desc { overflow-wrap: break-word; }
+
+/* --- Stat cards: number wrapping on tiny screens --- */
+.stat-number { overflow-wrap: break-word; word-break: break-word; }
+
+/* --- Trust bar: items wrap cleanly --- */
+.trust-bar-inner { row-gap: 12px; }
+.trust-item { flex-shrink: 0; }
+
+/* --- Section subtitle: safe wrapping --- */
+.section-subtitle { overflow-wrap: break-word; }
+
+/* --- btn-group: always wraps, never overflows --- */
+.btn-group { flex-wrap: wrap; }
+
+/* --- Responsive: 375px and below --- */
+@media (max-width: 375px) {
+  .container { padding: 0 12px; }
+  .section { padding: 48px 0; }
+  .hero { padding: 40px 0 32px; }
+  .hero-title { font-size: 1.55rem; }
+  .page-hero { padding: 40px 0 28px; }
+  .page-hero-title { font-size: 1.5rem; }
+  .download-card { padding: 16px 12px; }
+  .pricing-card { padding: 20px 12px; }
+  .pricing-amount { font-size: 2.4rem; }
+  .btn-lg { padding: 12px 16px; font-size: .95rem; }
+  .play-store-btn { padding: 12px 16px; }
+  .stat-card { padding: 24px 12px; }
+  .stat-number { font-size: 1.8rem; }
+  .feature-card { padding: 20px 16px; }
+  .faq-question { padding: 14px 16px; font-size: .95rem; }
+  .faq-answer { padding: 0 16px 14px; }
+  .error-code { font-size: 5rem; }
+}
+
+/* --- Responsive: 320px --- */
+@media (max-width: 320px) {
+  .container { padding: 0 10px; }
+  .hero-title { font-size: 1.4rem; }
+  .section-title { font-size: 1.4rem; }
+  .btn { padding: 10px 14px; font-size: .9rem; }
+  .nav-link { font-size: .9rem; padding: 8px 10px; }
+  .footer-grid { gap: 24px; }
+}
