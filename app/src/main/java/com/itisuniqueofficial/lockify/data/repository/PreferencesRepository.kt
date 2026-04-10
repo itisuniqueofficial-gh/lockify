@@ -104,6 +104,13 @@ class PreferencesRepository(context: Context) {
         settingsPrefs.edit { putBoolean(KEY_SHOW_DONATE_LINK, show) }
     }
 
+    fun isAccessibilityDisclosureAccepted(): Boolean =
+        settingsPrefs.getBoolean(KEY_ACCESSIBILITY_DISCLOSURE_ACCEPTED, false)
+
+    fun setAccessibilityDisclosureAccepted(accepted: Boolean) {
+        settingsPrefs.edit { putBoolean(KEY_ACCESSIBILITY_DISCLOSURE_ACCEPTED, accepted) }
+    }
+
     fun isLoggingEnabled(): Boolean = settingsPrefs.getBoolean(KEY_LOGGING_ENABLED, false)
     fun setLoggingEnabled(enabled: Boolean) {
         settingsPrefs.edit { putBoolean(KEY_LOGGING_ENABLED, enabled) }
@@ -128,6 +135,7 @@ class PreferencesRepository(context: Context) {
         private const val KEY_AUTO_UNLOCK = "auto_unlock"
         private const val KEY_SHOW_SYSTEM_APPS = "show_system_apps"
         private const val KEY_LOCK_TYPE = "lock_type"
+        private const val KEY_ACCESSIBILITY_DISCLOSURE_ACCEPTED = "accessibility_disclosure_accepted"
 
         private const val DEFAULT_PROTECT_ENABLED = true
         private const val DEFAULT_UNLOCK_DURATION = 0

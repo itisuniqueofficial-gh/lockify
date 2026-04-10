@@ -294,6 +294,17 @@ Make sure you have Shizuku installed and enabled via ADB. Tap \'Next\' to grant 
     <string name="forgot_password_no_device_lock">Set a screen lock on your device first to use password recovery.</string>
     <string name="forgot_password_reset_success">Password reset successfully</string>
 
+    <!-- Accessibility Prominent Disclosure -->
+    <string name="accessibility_disclosure_title">Accessibility Permission Required</string>
+    <string name="accessibility_disclosure_body">Lockify requires Accessibility permission to detect when your selected apps are opened so it can lock and protect them.\n\nThis permission is used only for app locking functionality and to help keep your protected apps secure.\n\nLockify does not collect, store, or share personal or sensitive data through this permission.</string>
+    <string name="accessibility_disclosure_bullet_1">Detect when protected apps are opened</string>
+    <string name="accessibility_disclosure_bullet_2">Show the lock screen at the right time</string>
+    <string name="accessibility_disclosure_bullet_3">Help keep your private apps secure</string>
+    <string name="accessibility_disclosure_footer">You can enable or disable this permission at any time from your device settings.</string>
+    <string name="accessibility_disclosure_continue">Continue</string>
+    <string name="accessibility_disclosure_not_now">Not Now</string>
+    <string name="accessibility_disclosure_not_enabled">Accessibility permission was not enabled. You can enable it later from Settings.</string>
+
     <string name="join_community">Subscribe on YouTube</string>
     <string name="join_community_desc">Subscribe to our YouTube channel to stay updated on the latest news and features.</string>
     <string name="join_discord">Subscribe on YouTube</string>

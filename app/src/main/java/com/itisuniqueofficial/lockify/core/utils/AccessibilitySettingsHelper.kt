@@ -15,6 +15,10 @@ fun Context.isAccessibilityServiceEnabled(): Boolean {
     return false
 }
 
+/**
+ * Opens Android Accessibility Settings directly.
+ * Only call this AFTER the prominent disclosure has been accepted by the user.
+ */
 fun openAccessibilitySettings(context: Context) {
     val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
     intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK

@@ -44,6 +44,7 @@ import com.itisuniqueofficial.lockify.core.utils.launchBatterySettings
 import com.itisuniqueofficial.lockify.data.repository.BackendImplementation
 import com.itisuniqueofficial.lockify.features.appintro.domain.AppIntroManager
 import com.itisuniqueofficial.lockify.services.ExperimentalAppLockService
+import com.itisuniqueofficial.lockify.ui.components.AccessibilityDisclosureDialog
 import com.itisuniqueofficial.lockify.ui.icons.Accessibility
 import com.itisuniqueofficial.lockify.ui.icons.BatterySaver
 import com.itisuniqueofficial.lockify.ui.icons.Display
@@ -124,6 +125,22 @@ fun AppIntroScreen(navController: NavController) {
     }
     var usageStatsPermissionGranted by remember { mutableStateOf(context.hasUsagePermission()) }
     var accessibilityServiceEnabled by remember { mutableStateOf(context.isAccessibilityServiceEnabled()) }
+
+    // Prominent disclosure state for accessibility permission
+    var showAccessibilityDisclosure by remember { mutableStateOf(false) }
+    if (showAccessibilityDisclosure) {
+        AccessibilityDisclosureDialog(
+            onContinue = {
+                context.appLockRepository().setAccessibilityDisclosureAccepted(true)
+                showAccessibilityDisclosure = false
+                val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                context.startActivity(intent)
+            },
+            onDismiss = { showAccessibilityDisclosure = false }
+        )
+    }
 
     val requestPermissionLauncher =
         if (activity != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -312,10 +329,8 @@ fun AppIntroScreen(navController: NavController) {
                 onNext = {
                     accessibilityServiceEnabled = context.isAccessibilityServiceEnabled()
                     if (!accessibilityServiceEnabled) {
-                        val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS).apply {
-                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                        }
-                        context.startActivity(intent)
+                        // Show prominent disclosure before opening accessibility settings
+                        showAccessibilityDisclosure = true
                         false
                     } else {
                         context.appLockRepository()

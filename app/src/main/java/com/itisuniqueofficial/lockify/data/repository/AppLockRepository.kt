@@ -84,6 +84,11 @@ class AppLockRepository(private val context: Context) {
     fun isLoggingEnabled(): Boolean = preferencesRepository.isLoggingEnabled()
     fun setLoggingEnabled(enabled: Boolean) = preferencesRepository.setLoggingEnabled(enabled)
 
+    fun isAccessibilityDisclosureAccepted(): Boolean =
+        preferencesRepository.isAccessibilityDisclosureAccepted()
+    fun setAccessibilityDisclosureAccepted(accepted: Boolean) =
+        preferencesRepository.setAccessibilityDisclosureAccepted(accepted)
+
     fun setActiveBackend(backend: BackendImplementation) =
         backendServiceManager.setActiveBackend(backend)
 

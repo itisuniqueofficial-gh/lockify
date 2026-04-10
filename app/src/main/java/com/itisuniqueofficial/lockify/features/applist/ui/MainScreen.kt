@@ -50,6 +50,7 @@ import com.itisuniqueofficial.lockify.core.utils.hasUsagePermission
 import com.itisuniqueofficial.lockify.core.utils.isAccessibilityServiceEnabled
 import com.itisuniqueofficial.lockify.core.utils.openAccessibilitySettings
 import com.itisuniqueofficial.lockify.data.repository.BackendImplementation
+import com.itisuniqueofficial.lockify.ui.components.AccessibilityDisclosureDialog
 import com.itisuniqueofficial.lockify.ui.components.DonateModalBottomSheet
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -112,6 +113,19 @@ fun MainScreen(
     val appLockRepository = context.appLockRepository()
 
     var showCommunityLink by remember { mutableStateOf(appLockRepository.isShowCommunityLink()) }
+
+    // Accessibility prominent disclosure
+    var showAccessibilityDisclosure by remember { mutableStateOf(false) }
+    if (showAccessibilityDisclosure) {
+        AccessibilityDisclosureDialog(
+            onContinue = {
+                appLockRepository.setAccessibilityDisclosureAccepted(true)
+                showAccessibilityDisclosure = false
+                openAccessibilitySettings(context)
+            },
+            onDismiss = { showAccessibilityDisclosure = false }
+        )
+    }
 
     if (showCommunityLink) {
         CommunityDialog(
@@ -258,7 +272,7 @@ fun MainScreen(
                             }
 
                             MissingPermission.ACCESSIBILITY -> {
-                                openAccessibilitySettings(context)
+                                showAccessibilityDisclosure = true
                             }
 
                             MissingPermission.USAGE_STATS -> {

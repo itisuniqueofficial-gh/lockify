@@ -45,6 +45,7 @@ import com.itisuniqueofficial.lockify.data.repository.AppLockRepository
 import com.itisuniqueofficial.lockify.data.repository.BackendImplementation
 import com.itisuniqueofficial.lockify.features.admin.AdminDisableActivity
 import com.itisuniqueofficial.lockify.services.ExperimentalAppLockService
+import com.itisuniqueofficial.lockify.ui.components.AccessibilityDisclosureDialog
 import com.itisuniqueofficial.lockify.ui.components.DonateButton
 import com.itisuniqueofficial.lockify.ui.icons.*
 import kotlin.math.abs
@@ -71,6 +72,24 @@ fun SettingsScreen(
     var showPermissionDialog by remember { mutableStateOf(false) }
     var showDeviceAdminDialog by remember { mutableStateOf(false) }
     var showAccessibilityDialog by remember { mutableStateOf(false) }
+    var showAccessibilityDisclosure by remember { mutableStateOf(false) }
+    // Tracks what to do after disclosure is accepted (open settings directly, or via anti-uninstall flow)
+    var pendingAccessibilityAction by remember { mutableStateOf<(() -> Unit)?>(null) }
+
+    if (showAccessibilityDisclosure) {
+        AccessibilityDisclosureDialog(
+            onContinue = {
+                appLockRepository.setAccessibilityDisclosureAccepted(true)
+                showAccessibilityDisclosure = false
+                pendingAccessibilityAction?.invoke()
+                pendingAccessibilityAction = null
+            },
+            onDismiss = {
+                showAccessibilityDisclosure = false
+                pendingAccessibilityAction = null
+            }
+        )
+    }
 
     val biometricManager = remember { BiometricManager.from(context) }
     val isBiometricAvailable = remember {
@@ -154,13 +173,18 @@ fun SettingsScreen(
             onDismiss = { showAccessibilityDialog = false },
             onConfirm = {
                 showAccessibilityDialog = false
-                openAccessibilitySettings(context)
                 val dpm =
                     context.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
                 val component = ComponentName(context, DeviceAdmin::class.java)
-                if (!dpm.isAdminActive(component)) {
-                    showDeviceAdminDialog = true
+                val needsDeviceAdmin = !dpm.isAdminActive(component)
+                // Show disclosure before opening accessibility settings
+                pendingAccessibilityAction = {
+                    openAccessibilitySettings(context)
+                    if (needsDeviceAdmin) {
+                        showDeviceAdminDialog = true
+                    }
                 }
+                showAccessibilityDisclosure = true
             }
         )
     }
@@ -419,7 +443,11 @@ fun SettingsScreen(
             item {
                 BackendSelectionCard(
                     appLockRepository = appLockRepository,
-                    context = context
+                    context = context,
+                    onRequestAccessibility = { action ->
+                        pendingAccessibilityAction = action
+                        showAccessibilityDisclosure = true
+                    }
                 )
             }
 
@@ -720,7 +748,8 @@ fun UnlockTimeDurationDialog(
 @Composable
 fun BackendSelectionCard(
     appLockRepository: AppLockRepository,
-    context: Context
+    context: Context,
+    onRequestAccessibility: (action: () -> Unit) -> Unit = { openAccessibilitySettings(context) }
 ) {
     var selectedBackend by remember { mutableStateOf(appLockRepository.getBackendImplementation()) }
 
@@ -759,7 +788,9 @@ fun BackendSelectionCard(
                                 }
                                 BackendImplementation.ACCESSIBILITY -> {
                                     if (!context.isAccessibilityServiceEnabled()) {
-                                        openAccessibilitySettings(context)
+                                        onRequestAccessibility {
+                                            openAccessibilitySettings(context)
+                                        }
                                         return@BackendSelectionItem
                                     }
                                     selectedBackend = backend
