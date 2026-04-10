@@ -15,7 +15,9 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.itisuniqueofficial.lockify.AppLockApplication
+import com.itisuniqueofficial.lockify.R
 import com.itisuniqueofficial.lockify.core.utils.LogUtils
+import com.itisuniqueofficial.lockify.core.utils.launchDeviceCredentialAuth
 import com.itisuniqueofficial.lockify.data.repository.PreferencesRepository
 import com.itisuniqueofficial.lockify.features.antiuninstall.ui.AntiUninstallScreen
 import com.itisuniqueofficial.lockify.features.appintro.ui.AppIntroScreen
@@ -59,6 +61,15 @@ fun AppNavHost(navController: NavHostController, startDestination: String) {
             }
         }
 
+        composable(Screen.ResetPassword.route) {
+            // Arrived here after successful device credential verification — skip old-PIN check
+            if (application.appLockRepository.getLockType() == PreferencesRepository.LOCK_TYPE_PATTERN) {
+                PatternSetPasswordScreen(navController, isFirstTimeSetup = false, skipOldPasswordVerification = true)
+            } else {
+                SetPasswordScreen(navController, isFirstTimeSetup = false, skipOldPasswordVerification = true)
+            }
+        }
+
         composable(Screen.SetPasswordPattern.route) {
             PatternSetPasswordScreen(navController, isFirstTimeSetup = true)
         }
@@ -70,6 +81,26 @@ fun AppNavHost(navController: NavHostController, startDestination: String) {
         composable(Screen.PasswordOverlay.route) {
             val context = LocalActivity.current as FragmentActivity
             val lockType = application.appLockRepository.getLockType()
+
+            val onForgotPassword: () -> Unit = {
+                launchDeviceCredentialAuth(
+                    activity = context,
+                    title = context.getString(R.string.forgot_password_verify_title),
+                    subtitle = context.getString(R.string.forgot_password_verify_subtitle),
+                    onSuccess = {
+                        navController.navigate(Screen.ResetPassword.route) {
+                            popUpTo(Screen.PasswordOverlay.route) { inclusive = true }
+                        }
+                    },
+                    onNoLock = {
+                        android.widget.Toast.makeText(
+                            context,
+                            context.getString(R.string.forgot_password_no_device_lock),
+                            android.widget.Toast.LENGTH_LONG
+                        ).show()
+                    }
+                )
+            }
 
             when (lockType) {
                 PreferencesRepository.LOCK_TYPE_PATTERN -> {
@@ -84,7 +115,8 @@ fun AppNavHost(navController: NavHostController, startDestination: String) {
                         },
                         onBiometricAuth = {
                             handleBiometricAuthentication(context, navController)
-                        }
+                        },
+                        onForgotPassword = onForgotPassword
                     )
                 }
 
@@ -97,7 +129,8 @@ fun AppNavHost(navController: NavHostController, startDestination: String) {
                         },
                         onAuthSuccess = {
                             handleAuthenticationSuccess(navController)
-                        }
+                        },
+                        onForgotPassword = onForgotPassword
                     )
                 }
             }

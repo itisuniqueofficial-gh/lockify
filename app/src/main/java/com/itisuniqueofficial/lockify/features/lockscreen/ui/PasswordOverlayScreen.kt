@@ -47,6 +47,7 @@ import androidx.lifecycle.lifecycleScope
 import com.itisuniqueofficial.lockify.R
 import com.itisuniqueofficial.lockify.core.ui.shapes
 import com.itisuniqueofficial.lockify.core.utils.appLockRepository
+import com.itisuniqueofficial.lockify.core.utils.launchDeviceCredentialAuth
 import com.itisuniqueofficial.lockify.core.utils.vibrate
 import com.itisuniqueofficial.lockify.data.repository.AppLockRepository
 import com.itisuniqueofficial.lockify.data.repository.PreferencesRepository
@@ -167,7 +168,6 @@ class PasswordOverlayActivity : FragmentActivity() {
             if (isValid) {
                 lockedPackageNameFromIntent?.let { pkgName ->
                     AppLockManager.unlockApp(pkgName)
-
                     finishAfterTransition()
                 }
             }
@@ -179,11 +179,42 @@ class PasswordOverlayActivity : FragmentActivity() {
             if (isValid) {
                 lockedPackageNameFromIntent?.let { pkgName ->
                     AppLockManager.unlockApp(pkgName)
-
                     finishAfterTransition()
                 }
             }
             isValid
+        }
+
+        val onForgotPasswordCallback = {
+            launchDeviceCredentialAuth(
+                activity = this,
+                title = getString(R.string.forgot_password_verify_title),
+                subtitle = getString(R.string.forgot_password_verify_subtitle),
+                onSuccess = {
+                    // Device verified — navigate to reset password in MainActivity
+                    AppLockManager.isLockScreenShown.set(false)
+                    val intent = android.content.Intent(
+                        this,
+                        com.itisuniqueofficial.lockify.MainActivity::class.java
+                    ).apply {
+                        flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK or
+                                android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP
+                        putExtra(EXTRA_NAVIGATE_TO_RESET, true)
+                    }
+                    startActivity(intent)
+                    finish()
+                },
+                onFailure = {
+                    // Auth failed — stay on lock screen, do nothing
+                },
+                onNoLock = {
+                    android.widget.Toast.makeText(
+                        this,
+                        getString(R.string.forgot_password_no_device_lock),
+                        android.widget.Toast.LENGTH_LONG
+                    ).show()
+                }
+            )
         }
 
         setContent {
@@ -200,7 +231,8 @@ class PasswordOverlayActivity : FragmentActivity() {
                                 fromMainActivity = false,
                                 lockedAppName = appName,
                                 triggeringPackageName = triggeringPackageNameFromIntent,
-                                onPatternAttempt = onPatternAttemptCallback
+                                onPatternAttempt = onPatternAttemptCallback,
+                                onForgotPassword = onForgotPasswordCallback
                             )
                         }
 
@@ -213,13 +245,18 @@ class PasswordOverlayActivity : FragmentActivity() {
                                 onAuthSuccess = {},
                                 lockedAppName = appName,
                                 triggeringPackageName = triggeringPackageNameFromIntent,
-                                onPinAttempt = onPinAttemptCallback
+                                onPinAttempt = onPinAttemptCallback,
+                                onForgotPassword = onForgotPasswordCallback
                             )
                         }
                     }
                 }
             }
         }
+    }
+
+    companion object {
+        const val EXTRA_NAVIGATE_TO_RESET = "navigate_to_reset"
     }
 
     private fun setupBiometricPromptInternal() {
@@ -338,7 +375,8 @@ fun PasswordOverlayScreen(
     onAuthSuccess: () -> Unit,
     lockedAppName: String? = null,
     triggeringPackageName: String? = null,
-    onPinAttempt: ((pin: String) -> Boolean)? = null
+    onPinAttempt: ((pin: String) -> Boolean)? = null,
+    onForgotPassword: (() -> Unit)? = null
 ) {
     val appLockRepository = LocalContext.current.appLockRepository()
     val windowInfo = LocalWindowInfo.current
@@ -405,6 +443,17 @@ fun PasswordOverlayScreen(
                             color = MaterialTheme.colorScheme.error,
                             style = MaterialTheme.typography.bodyMedium,
                         )
+                    }
+
+                    if (onForgotPassword != null) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        TextButton(onClick = onForgotPassword) {
+                            Text(
+                                text = stringResource(R.string.forgot_password_button),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
                     }
                 }
 
@@ -477,6 +526,16 @@ fun PasswordOverlayScreen(
                         style = MaterialTheme.typography.bodyMedium,
                         modifier = Modifier.padding(top = 8.dp)
                     )
+                }
+
+                if (onForgotPassword != null) {
+                    TextButton(onClick = onForgotPassword) {
+                        Text(
+                            text = stringResource(R.string.forgot_password_button),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
                 }
 
                 Spacer(modifier = Modifier.weight(1f))

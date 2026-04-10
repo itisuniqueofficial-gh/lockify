@@ -51,12 +51,13 @@ import com.itisuniqueofficial.lockify.data.repository.PreferencesRepository
 @Composable
 fun PatternSetPasswordScreen(
     navController: NavController,
-    isFirstTimeSetup: Boolean
+    isFirstTimeSetup: Boolean,
+    skipOldPasswordVerification: Boolean = false
 ) {
     var patternState by remember { mutableStateOf("") }
     var confirmPatternState by remember { mutableStateOf("") }
     var isConfirmationMode by remember { mutableStateOf(false) }
-    var isVerifyOldPasswordMode by remember { mutableStateOf(!isFirstTimeSetup) }
+    var isVerifyOldPasswordMode by remember { mutableStateOf(!isFirstTimeSetup && !skipOldPasswordVerification) }
 
     var showMismatchError by remember { mutableStateOf(false) }
     var showMinLengthError by remember { mutableStateOf(false) }

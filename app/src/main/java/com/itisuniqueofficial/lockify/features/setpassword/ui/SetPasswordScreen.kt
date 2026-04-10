@@ -55,13 +55,14 @@ import com.itisuniqueofficial.lockify.ui.icons.Backspace
 @Composable
 fun SetPasswordScreen(
     navController: NavController,
-    isFirstTimeSetup: Boolean
+    isFirstTimeSetup: Boolean,
+    skipOldPasswordVerification: Boolean = false
 ) {
     var passwordState by remember { mutableStateOf("") }
     var confirmPasswordState by remember { mutableStateOf("") }
     var isConfirmationMode by remember { mutableStateOf(false) }
 
-    var isVerifyOldPasswordMode by remember { mutableStateOf(!isFirstTimeSetup) }
+    var isVerifyOldPasswordMode by remember { mutableStateOf(!isFirstTimeSetup && !skipOldPasswordVerification) }
 
     var showMismatchError by remember { mutableStateOf(false) }
     var showLengthError by remember { mutableStateOf(false) }

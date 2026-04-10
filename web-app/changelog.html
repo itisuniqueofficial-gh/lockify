@@ -1,0 +1,130 @@
+---
+layout: default
+title: "Lockify Changelog – Version History & Release Notes"
+description: "Full changelog and version history for Lockify. See what was added, improved, fixed, and secured in every release."
+---
+
+<section class="page-hero">
+  <div class="container">
+    <nav class="breadcrumb" aria-label="Breadcrumb">
+      <a href="/">Home</a><span class="breadcrumb-sep" aria-hidden="true">›</span>
+      <span aria-current="page">Changelog</span>
+    </nav>
+    <h1 class="page-hero-title">Changelog</h1>
+    <p class="page-hero-desc">Complete version history and release notes for Lockify.</p>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+
+    <!-- Filter Bar -->
+    <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:40px;" role="group" aria-label="Filter changelog by type">
+      <button class="btn btn-sm btn-primary active" data-filter="all">All</button>
+      <button class="btn btn-sm btn-ghost" data-filter="added">Added</button>
+      <button class="btn btn-sm btn-ghost" data-filter="improved">Improved</button>
+      <button class="btn btn-sm btn-ghost" data-filter="fixed">Fixed</button>
+      <button class="btn btn-sm btn-ghost" data-filter="security">Security</button>
+      <button class="btn btn-sm btn-ghost" data-filter="performance">Performance</button>
+    </div>
+
+    <div style="max-width:800px;">
+
+      <!-- v1.0.0 -->
+      <div class="changelog-entry fade-in">
+        <div class="changelog-version">v1.0.0 — Initial Release</div>
+        <div class="changelog-date">2026 · Stable</div>
+        <div class="changelog-list">
+          <div class="changelog-item" data-type="added">
+            <span class="changelog-tag tag-added">Added</span>
+            Full app lock protection — lock any installed app with a secure overlay
+          </div>
+          <div class="changelog-item" data-type="added">
+            <span class="changelog-tag tag-added">Added</span>
+            PIN authentication with animated indicators
+          </div>
+          <div class="changelog-item" data-type="added">
+            <span class="changelog-tag tag-added">Added</span>
+            Pattern lock with 3×3 grid and haptic feedback
+          </div>
+          <div class="changelog-item" data-type="added">
+            <span class="changelog-tag tag-added">Added</span>
+            Biometric authentication (fingerprint / face) support
+          </div>
+          <div class="changelog-item" data-type="added">
+            <span class="changelog-tag tag-added">Added</span>
+            Anti-uninstall protection via Device Administrator
+          </div>
+          <div class="changelog-item" data-type="added">
+            <span class="changelog-tag tag-added">Added</span>
+            Forgot password recovery using device lock credentials
+          </div>
+          <div class="changelog-item" data-type="added">
+            <span class="changelog-tag tag-added">Added</span>
+            Unlock time duration — keep apps unlocked for configurable period
+          </div>
+          <div class="changelog-item" data-type="added">
+            <span class="changelog-tag tag-added">Added</span>
+            Trigger exclusions — exclude apps from triggering lock
+          </div>
+          <div class="changelog-item" data-type="added">
+            <span class="changelog-tag tag-added">Added</span>
+            Auto unlock on correct PIN entry (optional)
+          </div>
+          <div class="changelog-item" data-type="added">
+            <span class="changelog-tag tag-added">Added</span>
+            Maximum brightness option on lock screen
+          </div>
+          <div class="changelog-item" data-type="added">
+            <span class="changelog-tag tag-added">Added</span>
+            Haptic feedback toggle
+          </div>
+          <div class="changelog-item" data-type="added">
+            <span class="changelog-tag tag-added">Added</span>
+            Debug logging with export capability
+          </div>
+          <div class="changelog-item" data-type="added">
+            <span class="changelog-tag tag-added">Added</span>
+            Usage Stats backend as alternative detection method
+          </div>
+          <div class="changelog-item" data-type="security">
+            <span class="changelog-tag tag-security">Security</span>
+            Privacy-first design — zero data collection, no cloud sync
+          </div>
+          <div class="changelog-item" data-type="security">
+            <span class="changelog-tag tag-security">Security</span>
+            Secure credential storage using Android SharedPreferences
+          </div>
+          <div class="changelog-item" data-type="security">
+            <span class="changelog-tag tag-security">Security</span>
+            Anti-bypass protection — back press and app switching cannot bypass lock
+          </div>
+          <div class="changelog-item" data-type="performance">
+            <span class="changelog-tag tag-performance">Performance</span>
+            Zero-lag lock screen overlay with instant trigger
+          </div>
+          <div class="changelog-item" data-type="performance">
+            <span class="changelog-tag tag-performance">Performance</span>
+            Optimized background service — minimal battery and memory usage
+          </div>
+          <div class="changelog-item" data-type="performance">
+            <span class="changelog-tag tag-performance">Performance</span>
+            App icon and label caching for smooth list rendering
+          </div>
+          <div class="changelog-item" data-type="performance">
+            <span class="changelog-tag tag-performance">Performance</span>
+            Removed all Shizuku dependencies for cleaner, lighter build
+          </div>
+        </div>
+      </div>
+
+      <!-- Future placeholder -->
+      <div style="margin-top:48px; padding:24px; background:var(--bg-alt); border-radius:var(--radius-lg); border:1px dashed var(--border); text-align:center;">
+        <p style="color:var(--text-muted); font-size:.95rem;">
+          Future releases will be listed here. <a href="/updates">Check the Updates page</a> for announcements.
+        </p>
+      </div>
+
+    </div>
+  </div>
+</section>

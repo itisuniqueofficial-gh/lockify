@@ -1,0 +1,49 @@
+title: Lockify
+description: Secure App Lock & Privacy Protection for Android
+url: "https://lockify.itisuniqueofficial.com"
+baseurl: ""
+
+author:
+  name: It Is Unique Official
+  url: https://itisuniqueofficial.com
+
+# Brand
+brand:
+  name: Lockify
+  tagline: Secure App Lock & Privacy Protection
+  package: com.itisuniqueofficial.lockify
+  version: "1.0.0"
+  min_android: "8.0 (API 26)"
+  play_store: "YOUR_PLAY_STORE_LINK_HERE"
+
+# Social
+social:
+  website: https://lockify.itisuniqueofficial.com/
+  donation: https://donation.itisuniqueofficial.com/
+  youtube: https://www.youtube.com/@itisuniqueofficial_yt
+  instagram: https://www.instagram.com/jayadtt_khodave
+  linkedin: https://in.linkedin.com/in/iamjaydatt
+  portfolio: https://my.itisuniqueofficial.com
+  brand_site: https://itisuniqueofficial.com
+
+# Jekyll
+markdown: kramdown
+permalink: pretty
+timezone: UTC
+
+plugins:
+  - jekyll-sitemap
+  - jekyll-seo-tag
+
+exclude:
+  - README.md
+  - Gemfile
+  - Gemfile.lock
+  - node_modules
+  - vendor
+
+defaults:
+  - scope:
+      path: ""
+    values:
+      layout: default

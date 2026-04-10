@@ -28,6 +28,10 @@ android {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
+    // Suppress dep-ann warnings from the hidden API Java stubs
+    tasks.withType<JavaCompile>().configureEach {
+        options.compilerArgs.addAll(listOf("-Xlint:-dep-ann"))
+    }
     kotlin.compilerOptions {
         jvmTarget.set(JvmTarget.JVM_11)
     }

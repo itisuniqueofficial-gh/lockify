@@ -288,6 +288,12 @@ Make sure you have Shizuku installed and enabled via ADB. Tap \'Next\' to grant 
     <string name="permission_warning_device_admin_desc">Prevents Lockify from being uninstalled.</string>
     <string name="permission_warning_title_suffix"> Required</string>
 
+    <string name="forgot_password_button">Forgot Password?</string>
+    <string name="forgot_password_verify_title">Verify Your Identity</string>
+    <string name="forgot_password_verify_subtitle">Use your device lock to reset Lockify password</string>
+    <string name="forgot_password_no_device_lock">Set a screen lock on your device first to use password recovery.</string>
+    <string name="forgot_password_reset_success">Password reset successfully</string>
+
     <string name="join_community">Subscribe on YouTube</string>
     <string name="join_community_desc">Subscribe to our YouTube channel to stay updated on the latest news and features.</string>
     <string name="join_discord">Subscribe on YouTube</string>

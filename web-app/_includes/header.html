@@ -1,0 +1,32 @@
+<header class="site-header" role="banner">
+  <div class="container header-inner">
+    <a href="/" class="logo" aria-label="Lockify Home">
+      <span class="logo-icon" aria-hidden="true">🔒</span>
+      <span class="logo-text">Lockify</span>
+    </a>
+
+    <button class="nav-toggle" id="navToggle" aria-label="Toggle navigation" aria-expanded="false" aria-controls="mainNav">
+      <span class="hamburger"></span>
+      <span class="hamburger"></span>
+      <span class="hamburger"></span>
+    </button>
+
+    <nav class="main-nav" id="mainNav" role="navigation" aria-label="Main navigation">
+      <ul class="nav-list">
+        <li><a href="/" class="nav-link {% if page.url == '/' %}active{% endif %}">Home</a></li>
+        <li><a href="/about" class="nav-link {% if page.url contains 'about' %}active{% endif %}">About</a></li>
+        <li><a href="/features" class="nav-link {% if page.url contains 'features' %}active{% endif %}">Features</a></li>
+        <li><a href="/download" class="nav-link {% if page.url contains 'download' %}active{% endif %}">Download</a></li>
+        <li><a href="/changelog" class="nav-link {% if page.url contains 'changelog' %}active{% endif %}">Changelog</a></li>
+        <li><a href="/updates" class="nav-link {% if page.url contains 'updates' %}active{% endif %}">Updates</a></li>
+        <li><a href="/faq" class="nav-link {% if page.url contains 'faq' %}active{% endif %}">FAQ</a></li>
+        <li><a href="/contact" class="nav-link {% if page.url contains 'contact' %}active{% endif %}">Contact</a></li>
+        <li>
+          <a href="/download" class="btn btn-primary btn-sm nav-cta">
+            Download
+          </a>
+        </li>
+      </ul>
+    </nav>
+  </div>
+</header>

@@ -1,0 +1,73 @@
+---
+layout: default
+title: "Lockify Privacy Policy"
+description: "Read the Lockify privacy policy. Learn how we handle your data, what permissions are used, and how your privacy is protected."
+---
+
+<section class="page-hero">
+  <div class="container">
+    <nav class="breadcrumb" aria-label="Breadcrumb">
+      <a href="/">Home</a><span class="breadcrumb-sep" aria-hidden="true">›</span>
+      <span aria-current="page">Privacy Policy</span>
+    </nav>
+    <h1 class="page-hero-title">Privacy Policy</h1>
+    <p class="page-hero-desc">How Lockify handles your data — and why we collect none of it.</p>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    <div class="prose">
+      <p class="last-updated">Last updated: 2026 · Applies to Lockify v1.0.0 and above</p>
+
+      <p>Lockify ("the App") is developed by It Is Unique Official. This Privacy Policy explains our data practices. The short version: <strong>we collect no personal data.</strong></p>
+
+      <h2>1. Data We Collect</h2>
+      <p>Lockify does not collect, store, transmit, or share any personal data. All information used by the app — including your PIN, pattern, locked app list, and settings — is stored locally on your device only.</p>
+
+      <h2>2. Permissions Used</h2>
+      <p>Lockify requests the following permissions, each used solely for app locking functionality:</p>
+      <ul>
+        <li><strong>Display over other apps (SYSTEM_ALERT_WINDOW):</strong> Required to show the lock screen overlay when a protected app is opened.</li>
+        <li><strong>Accessibility Service (BIND_ACCESSIBILITY_SERVICE):</strong> Used to detect when a protected app is launched. No content from other apps is read or recorded.</li>
+        <li><strong>Post Notifications (POST_NOTIFICATIONS):</strong> Used to show a persistent notification for the background service (Android 13+).</li>
+        <li><strong>Receive Boot Completed (RECEIVE_BOOT_COMPLETED):</strong> Allows Lockify to restart protection after device reboot.</li>
+        <li><strong>Request Ignore Battery Optimizations:</strong> Ensures the background service runs reliably.</li>
+        <li><strong>Device Administrator (optional):</strong> Used only when anti-uninstall protection is enabled by the user.</li>
+        <li><strong>Use Biometric (USE_BIOMETRIC):</strong> Used only when biometric authentication is enabled by the user.</li>
+        <li><strong>Package Usage Stats (PACKAGE_USAGE_STATS, optional):</strong> Alternative app detection method. Only used if selected by the user.</li>
+      </ul>
+
+      <h2>3. Local Storage</h2>
+      <p>The following data is stored locally on your device using Android's SharedPreferences (private mode):</p>
+      <ul>
+        <li>Your chosen lock type (PIN, pattern)</li>
+        <li>Your encrypted credentials (PIN hash or pattern)</li>
+        <li>List of locked apps</li>
+        <li>App settings and preferences</li>
+      </ul>
+      <p>This data is never transmitted off your device and is not accessible to other apps.</p>
+
+      <h2>4. Analytics & Crash Reporting</h2>
+      <p>Lockify does not use any third-party analytics, crash reporting, or tracking services. No usage data is collected or sent anywhere.</p>
+
+      <h2>5. Third-Party Services</h2>
+      <p>Lockify does not integrate any third-party SDKs for advertising, analytics, or data collection. The app is distributed through Google Play, which has its own privacy policy independent of this one.</p>
+
+      <h2>6. Children's Privacy</h2>
+      <p>Lockify does not knowingly collect data from children under 13. Since we collect no data from any user, this applies universally.</p>
+
+      <h2>7. Security</h2>
+      <p>All credentials are stored using Android's private SharedPreferences. They are never logged, never transmitted, and never accessible outside the app. The forgot password recovery feature uses Android's official BiometricPrompt API with device credential support — we never access your device's actual lock credentials.</p>
+
+      <h2>8. Your Rights</h2>
+      <p>Since we collect no personal data, there is nothing to access, correct, or delete on our end. You can clear all Lockify data at any time by uninstalling the app or clearing app data from Android Settings.</p>
+
+      <h2>9. Changes to This Policy</h2>
+      <p>If this policy changes, the updated version will be posted on this page with a new "Last updated" date. Continued use of the app after changes constitutes acceptance of the updated policy.</p>
+
+      <h2>10. Contact</h2>
+      <p>If you have questions about this privacy policy, contact us via the <a href="/contact">Contact page</a> or visit <a href="https://itisuniqueofficial.com" target="_blank" rel="noopener">itisuniqueofficial.com</a>.</p>
+    </div>
+  </div>
+</section>

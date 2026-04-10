@@ -5,6 +5,7 @@ sealed class Screen(val route: String) {
     object SetPassword : Screen("set_password")
     object SetPasswordPattern : Screen("set_password_pattern")
     object ChangePassword : Screen("change_password")
+    object ResetPassword : Screen("reset_password")   // post device-auth reset, skips old-PIN check
     object Main : Screen("main")
     object PasswordOverlay : Screen("password_overlay")
     object Settings : Screen("settings")

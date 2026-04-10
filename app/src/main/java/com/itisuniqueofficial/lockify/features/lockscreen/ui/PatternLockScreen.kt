@@ -22,6 +22,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -52,7 +53,8 @@ fun PatternLockScreen(
     lockedAppName: String? = null,
     triggeringPackageName: String? = null,
     onPatternAttempt: ((pattern: String) -> Boolean)? = null,
-    onBiometricAuth: (() -> Unit)? = null
+    onBiometricAuth: (() -> Unit)? = null,
+    onForgotPassword: (() -> Unit)? = null
 ) {
     val appLockRepository = LocalContext.current.appLockRepository()
     val context = LocalContext.current
@@ -153,6 +155,17 @@ fun PatternLockScreen(
                                 textAlign = TextAlign.Center
                             )
                         }
+
+                        if (onForgotPassword != null) {
+                            Spacer(modifier = Modifier.height(4.dp))
+                            TextButton(onClick = onForgotPassword) {
+                                Text(
+                                    text = stringResource(R.string.forgot_password_button),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
                     }
 
                     if (appLockRepository.isBiometricAuthEnabled() && onBiometricAuth != null) {
@@ -234,6 +247,17 @@ fun PatternLockScreen(
                             style = MaterialTheme.typography.labelLarge,
                             textAlign = TextAlign.Center
                         )
+                    }
+
+                    if (onForgotPassword != null) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        TextButton(onClick = onForgotPassword) {
+                            Text(
+                                text = stringResource(R.string.forgot_password_button),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
                     }
                 }
 
