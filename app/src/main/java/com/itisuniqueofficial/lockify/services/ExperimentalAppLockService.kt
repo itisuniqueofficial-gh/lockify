@@ -130,7 +130,7 @@ class ExperimentalAppLockService : Service() {
             if (currentPackage == triggeringPackage) return@timerTask
 
             checkAndLockApp(currentPackage, triggeringPackage, System.currentTimeMillis())
-        }, 0, 250)
+        }, 0, 100)
     }
 
     private fun isExclusionApp(packageName: String): Boolean {

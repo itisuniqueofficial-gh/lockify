@@ -1,4 +1,6 @@
-﻿package com.itisuniqueofficial.lockify.services
+﻿@file:Suppress("SpellCheckingInspection")
+
+package com.itisuniqueofficial.lockify.services
 
 import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.AccessibilityServiceInfo
@@ -312,10 +314,10 @@ class AppLockAccessibilityService : AccessibilityService() {
     }
 
     /**
-     * Intercepts uninstall confirmation dialogs for apps in the anti-uninstall protected list.
+     * Intercepts removal confirmation dialogs for apps in the protected list.
      *
-     * Android routes uninstall confirmations through the package installer. When the user
-     * confirms an uninstall, the package installer shows a dialog. We detect that dialog,
+     * Android routes app removal through the package installer. When the user
+     * confirms removal, the package installer shows a dialog. We detect that dialog,
      * check if the target package is in our protected list, and if so block the action by
      * navigating away and showing the Lockify lock screen.
      *
@@ -338,29 +340,29 @@ class AppLockAccessibilityService : AccessibilityService() {
         val className = event.className?.toString() ?: ""
         val eventText = event.text.joinToString(" ").lowercase()
 
-        // Detect uninstall confirmation screen/dialog
-        val isUninstallScreen = className.contains("UninstallActivity", ignoreCase = true) ||
+        // Detect app removal confirmation screen/dialog
+        val isRemovalScreen = className.contains("UninstallActivity", ignoreCase = true) ||
                 className.contains("UninstallConfirm", ignoreCase = true) ||
                 className.contains("UninstallAppProgress", ignoreCase = true) ||
                 eventText.contains("uninstall") ||
-                eventText.contains("do you want to uninstall") ||
+                eventText.contains("do you want to remove") ||
                 eventText.contains("remove this app")
 
-        if (!isUninstallScreen) return
+        if (!isRemovalScreen) return
 
-        // Find which protected app is being uninstalled by scanning the window content
+        // Find which protected app is being removed by scanning the window content
         val protectedApps = appLockRepository.getAntiUninstallApps()
         if (protectedApps.isEmpty()) return
 
-        val targetPackage = findTargetPackageFromUninstallScreen(protectedApps) ?: return
+        val targetPackage = findProtectedPackageInWindow(protectedApps) ?: return
 
-        LogUtils.d(TAG, "Uninstall attempt detected for protected app: $targetPackage")
+        LogUtils.d(TAG, "Removal attempt detected for protected app: $targetPackage")
 
         // Block: navigate away immediately, then show lock screen
         try {
             performGlobalAction(GLOBAL_ACTION_BACK)
         } catch (e: Exception) {
-            logError("Error performing back action during uninstall block", e)
+            logError("Error performing back action during removal block", e)
         }
 
         // Show Lockify lock screen so user must authenticate to proceed
@@ -376,16 +378,15 @@ class AppLockAccessibilityService : AccessibilityService() {
     }
 
     /**
-     * Tries to identify which protected app is being uninstalled by inspecting
+     * Tries to identify which protected app is being removed by inspecting
      * the accessibility window content for matching package names or app labels.
      */
-    private fun findTargetPackageFromUninstallScreen(protectedApps: Set<String>): String? {
+    private fun findProtectedPackageInWindow(protectedApps: Set<String>): String? {
         return try {
             val root = rootInActiveWindow ?: return null
             val windowText = buildString {
                 collectNodeText(root, this)
             }.lowercase()
-            root.recycle()
 
             // Check if any protected package name or its label appears in the window text
             for (pkg in protectedApps) {
@@ -399,7 +400,7 @@ class AppLockAccessibilityService : AccessibilityService() {
             }
             null
         } catch (e: Exception) {
-            logError("Error scanning uninstall screen for protected package", e)
+            logError("Error scanning removal screen for protected package", e)
             null
         }
     }
@@ -411,7 +412,6 @@ class AppLockAccessibilityService : AccessibilityService() {
             for (i in 0 until node.childCount) {
                 val child = node.getChild(i) ?: continue
                 collectNodeText(child, sb)
-                child.recycle()
             }
         } catch (_: Exception) { /* ignore node access errors */ }
     }

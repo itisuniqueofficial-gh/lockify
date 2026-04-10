@@ -1,4 +1,4 @@
-﻿package com.itisuniqueofficial.lockify.features.lockscreen.ui
+package com.itisuniqueofficial.lockify.features.lockscreen.ui
 
 import android.content.Context
 import android.content.res.Configuration
@@ -71,6 +71,8 @@ class PasswordOverlayActivity : FragmentActivity() {
     private var isBiometricPromptShowingLocal = false
     private var movedToBackground = false
     private var appName: String = ""
+    // Reactive state so the lock screen title updates once the app name loads
+    private val appNameState = androidx.compose.runtime.mutableStateOf("")
 
     private val TAG = "PasswordOverlayActivity"
 
@@ -94,7 +96,8 @@ class PasswordOverlayActivity : FragmentActivity() {
         }
 
         setupWindow()
-        loadAppNameAndSetupUI()
+        setupUI()
+        loadAppNameAsync()
     }
 
     override fun onPostCreate(savedInstanceState: Bundle?) {
@@ -146,9 +149,9 @@ class PasswordOverlayActivity : FragmentActivity() {
         window.attributes = layoutParams
     }
 
-    private fun loadAppNameAndSetupUI() {
+    private fun loadAppNameAsync() {
         lifecycleScope.launch {
-            appName = withContext(Dispatchers.IO) {
+            val name = withContext(Dispatchers.IO) {
                 try {
                     packageManager.getApplicationLabel(
                         packageManager.getApplicationInfo(lockedPackageNameFromIntent!!, 0)
@@ -158,7 +161,8 @@ class PasswordOverlayActivity : FragmentActivity() {
                     getString(R.string.default_app_name)
                 }
             }
-            setupUI()
+            appName = name
+            appNameState.value = name
         }
     }
 
@@ -191,7 +195,7 @@ class PasswordOverlayActivity : FragmentActivity() {
                 title = getString(R.string.forgot_password_verify_title),
                 subtitle = getString(R.string.forgot_password_verify_subtitle),
                 onSuccess = {
-                    // Device verified — navigate to reset password in MainActivity
+                    // Device verified � navigate to reset password in MainActivity
                     AppLockManager.isLockScreenShown.set(false)
                     val intent = android.content.Intent(
                         this,
@@ -205,7 +209,7 @@ class PasswordOverlayActivity : FragmentActivity() {
                     finish()
                 },
                 onFailure = {
-                    // Auth failed — stay on lock screen, do nothing
+                    // Auth failed � stay on lock screen, do nothing
                 },
                 onNoLock = {
                     android.widget.Toast.makeText(
