@@ -1,28 +1,9 @@
-What's new in v1.1.0
+🔐 Lockify – Update v1.0.1
 
-This release includes significant architectural improvements, enhanced security, and a better user experience.
+• Improved performance and smoothness
+• Fixed minor bugs and stability issues
+• Enhanced app locking reliability
+• Optimized user experience
+• General improvements and refinements
 
-Architecture & Performance:
-
-* Migration to Clean Architecture: Complete architectural refactoring for improved code separation, testability, and maintainability.
-* Improved app loading and Lock Service: Enhanced app list performance as well as improved lock service.
-* Enhanced battery optimization handling: Ask for battery optimization permission at intro screen.
-
-Security & Privacy Improvements:
-
-* Fixed system unlock conflict: Resolved critical issue where app lock screen would incorrectly appear over the system unlock screen.
-* Close stale password overlays (#3): Fixed issue when lock screen pops up after closing the locked app from recents.
-* Improved lock screen behavior and UI: Enhanced verification to prevent unnecessary lock screens with improved user interface.
-* Lock the app and remove lockscreen from recents: Prevented unauthorized access through recent apps list.
-* Locked List: The app now asks for password every time you open App Lock to prevent unauthorized modifications.
-
-User Experience:
-
-* Enhanced Settings: New redesigned settings screen.
-* Improved permission handling: Improved OEM battery settings navigation and permissions handling in app intro (#5).
-* Improved animations: Enhanced visual transitions throughout the app.
-* Better first-time setup flow: More intuitive onboarding experience.
-* Added Github link to settings: Direct access to project repository for feedback and contributions.
-
-Thank you for choosing AppLock for your privacy needs. We welcome your feedback and suggestions
-through GitHub issues!
+Thank you for using Lockify!
