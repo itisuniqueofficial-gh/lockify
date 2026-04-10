@@ -3,23 +3,21 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
-    id("dev.rikka.tools.refine") version "4.4.0"
 }
 
 android {
-    namespace = "dev.pranav.applock"
+    namespace = "com.itisuniqueofficial.lockify"
     compileSdk = 36
 
     // Builds with Canary Preview won't work on non-Canary devices
     // compileSdkPreview = "CANARY"
 
     defaultConfig {
-        applicationId = "dev.pranav.applock"
+        applicationId = "com.itisuniqueofficial.lockify"
         minSdk = 26
         targetSdk = 36
-        // targetSdkPreview = "CANARY"
-        versionCode = 223
-        versionName = "2.2.3"
+        versionCode = 1
+        versionName = "1.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -44,15 +42,12 @@ android {
     }
     buildFeatures {
         compose = true
-        aidl = true
     }
 
     dependenciesInfo {
         includeInApk = false
         includeInBundle = false
     }
-    buildToolsVersion = "37.0.0 rc1"
-    compileSdkMinor = 1
     kotlin.compilerOptions {
         jvmTarget.set(JvmTarget.JVM_17)
     }
@@ -74,8 +69,6 @@ dependencies {
     implementation(libs.androidx.material.icons.extended)
     implementation(libs.androidx.navigation.compose)
 
-    implementation(libs.shizuku.api)
-    implementation(libs.shizuku.provider)
     implementation(libs.refine.runtime)
     compileOnly(project(":hidden-api"))
     implementation(libs.hiddenapibypass)

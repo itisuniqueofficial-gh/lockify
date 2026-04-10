@@ -27,11 +27,9 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SYSTEM_EXEMPTED" />
 
-    <uses-permission android:name="android.permission.SET_ACTIVITY_WATCHER" />
-
     <application
         android:name=".AppLockApplication"
-        android:allowBackup="true"
+        android:allowBackup="false"
         android:allowClearUserData="false"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:enableOnBackInvokedCallback="true"
@@ -65,12 +63,6 @@
             android:name=".features.admin.AdminDisableActivity"
             android:exported="false"
             android:theme="@style/Theme.AppLock" />
-
-        <service
-            android:name=".services.ShizukuAppLockService"
-            android:enabled="true"
-            android:exported="false"
-            android:foregroundServiceType="specialUse|systemExempted" />
 
         <service
             android:name=".services.ExperimentalAppLockService"
@@ -135,14 +127,6 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths" />
         </provider>
-
-        <provider
-            android:name="rikka.shizuku.ShizukuProvider"
-            android:authorities="${applicationId}.shizuku"
-            android:enabled="true"
-            android:exported="true"
-            android:multiprocess="false"
-            android:permission="android.permission.INTERACT_ACROSS_USERS_FULL" />
 
     </application>
 </manifest>

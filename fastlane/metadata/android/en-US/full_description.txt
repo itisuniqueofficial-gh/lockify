@@ -1,6 +1,6 @@
-Secure your sensitive apps with powerful biometric protection using AppLock!
+Secure your sensitive apps with powerful biometric protection using Lockify!
 
-AppLock is a modern, open-source privacy tool designed to keep your sensitive apps safe. With a beautiful Material 3 Expressive interface and robust biometric security, AppLock ensures your data stays private — always on your device, never in the cloud.
+Lockify by It Is Unique Official is a modern privacy tool designed to keep your sensitive apps safe. With robust biometric security and reliable app protection, Lockify keeps your data private on your device.
 
 Features:
 
@@ -20,8 +20,8 @@ Perfect for:
 * Parents restricting access for children
 * Professionals protecting work apps
 
-App Lock is designed to be lightweight and efficient, with minimal battery impact. It runs entirely offline, ensuring your data remains private and secure.
+Lockify is designed to be lightweight and efficient, with minimal battery impact. It runs entirely offline, ensuring your data remains private and secure.
 
-Built with Jetpack Compose and Material 3 for a smooth, intuitive experience. AppLock is free, open-source, and respects your privacy — always.
+Built with Jetpack Compose and Material 3 for a smooth, intuitive experience. Lockify respects your privacy and is ready for secure daily use.
 
-Source code and issue tracker: https://github.com/PranavPurwar/AppLock
+Website: https://itisuniqueofficial.com

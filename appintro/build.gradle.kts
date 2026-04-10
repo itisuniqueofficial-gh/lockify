@@ -35,8 +35,6 @@ android {
     buildFeatures {
         compose = true
     }
-    compileSdkMinor = 1
-    buildToolsVersion = "37.0.0 rc1"
 }
 
 dependencies {

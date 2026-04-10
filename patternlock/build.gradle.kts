@@ -5,11 +5,7 @@ plugins {
 
 android {
     namespace = "com.mrhwsn.composelock"
-    compileSdk {
-        version = release(36) {
-            minorApiLevel = 1
-        }
-    }
+    compileSdk = 36
 
     defaultConfig {
         minSdk = 26
@@ -34,7 +30,6 @@ android {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
-    buildToolsVersion = "37.0.0 rc1"
 }
 
 dependencies {

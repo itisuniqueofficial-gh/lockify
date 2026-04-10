@@ -2,21 +2,18 @@
   <img src="fastlane/metadata/android/en-US/images/featureGraphic.png" alt="AppLock Android Privacy Security" width="600" />
 </div>
 
-<h1 align="center">App Lock</h1>
-<p align="center"><b>Open Source Android App Locker & Privacy Guard</b></p>
+  <h1 align="center">Lockify</h1>
+<p align="center"><b>Secure App Lock by It Is Unique Official</b></p>
 
 <p align="center">
   <a href="https://opensource.org/licenses/MIT">
     <img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License">
   </a>
-  <a href="https://github.com/PranavPurwar/AppLock/releases">
-    <img src="https://img.shields.io/github/v/release/PranavPurwar/AppLock?label=Release" alt="Latest Release">
+  <a href="https://github.com/itisuniqueofficial-gh/lockify">
+    <img src="https://img.shields.io/badge/GitHub-lockify-black?logo=github" alt="GitHub Repository">
   </a>
-  <a href="https://apt.izzysoft.de/packages/dev.pranav.applock">
-    <img src="https://img.shields.io/badge/IzzyOnDroid-Available-brightgreen" alt="IzzyOnDroid">
-  </a>
-  <a href="https://paypal.me/pranavpurwar">
-    <img src="https://img.shields.io/badge/Donate-PayPal-00457C?logo=paypal&logoColor=white" alt="Donate via PayPal">
+  <a href="https://lockify.itisuniqueofficial.com/">
+    <img src="https://img.shields.io/badge/Website-Lockify-2ea44f" alt="Website">
   </a>
 </p>
 
@@ -39,14 +36,14 @@
 
 ## Overview
 
-AppLock is a modern, open-source Android app locker designed to protect your privacy and sensitive
-data. Lock any app, prevent unauthorized access, and enjoy a seamless Material You experience. No
-root required.
+Lockify is an Android app locker maintained by It Is Unique Official.
+It helps protect selected apps with PIN, pattern, and biometric authentication while keeping
+the core experience lightweight and on-device.
 
 <br/>
 
 > [!CAUTION]
-> Google Play Protect is blocking some people from installing/updating App Lock because it uses Overlay Permission. It uses a false pretext of "this app may try to access sensitive information"
+> Google Play Protect may warn during install or update because Lockify relies on overlay and accessibility-related permissions to secure apps. It may show a false pretext of "this app may try to access sensitive information"
 > without any base or information. If this happens to you, consider disabling Play Protect temporarily as mentioned [here](https://www.airdroid.com/quick-guides/disable-google-play-protect).
 >
 > You may enable it back later after you install the app. We understand this introduces unnecessary friction but there's nothing we can do about it. Google does not like it
@@ -55,11 +52,9 @@ root required.
 <br/>
 
 > [!NOTE]
-> You may confirm that the app is completely secure
+> Verify the app and source before installing any security-sensitive software.
 >
-> VirusTotal Analysis: [v1.5.0 Analysis](https://www.virustotal.com/gui/url/ead3a434b961ce332b49398d73a10598b2cee6d665c54bb4a66c825794465d72)
-> 
-> Exodus Privacy: [Privacy Report](https://reports.exodus-privacy.eu.org/en/reports/dev.pranav.applock/latest)
+> This repository contains the full Android source for Lockify.
 
 <br/>
 
@@ -79,22 +74,35 @@ root required.
 
 <br/>
 
-## Download
+## Play Store
 
-The app is available for download via F-Droid, IzzyOnDroid aswell
-as [Github Releases](https://github.com/PranavPurwar/AppLock/releases/latest).
+App name: `Lockify`
 
-<a href="https://f-droid.org/packages/dev.pranav.applock/">
-    <img src="https://fdroid.gitlab.io/artwork/badge/get-it-on.png" alt="F-Droid" height="100"/>
-  </a>
-<a href="https://apt.izzysoft.de/packages/dev.pranav.applock">
-    <img src="https://gitlab.com/IzzyOnDroid/repo/-/raw/master/assets/IzzyOnDroid.png" alt="IzzyOnDroid" height="100"/>
-  </a>
+Package: `com.itisuniqueofficial.lockify`
 
-Beta Builds can be
-found [here](https://github.com/PranavPurwar/AppLock/raw/refs/heads/master/app/debug/app-debug.apk)
+Short description: `Secure your apps with smart protection - Lockify by It Is Unique Official.`
 
-<br/>
+Website: https://lockify.itisuniqueofficial.com/
+
+## Development
+
+### Requirements
+
+- Android Studio
+- JDK 17+
+- Android SDK configured locally
+
+### Build
+
+```bash
+./gradlew assembleDebug
+```
+
+On Windows PowerShell:
+
+```powershell
+.\gradlew.bat assembleDebug
+```
 
 ## Use Cases
 
@@ -105,54 +113,18 @@ found [here](https://github.com/PranavPurwar/AppLock/raw/refs/heads/master/app/d
 
 <br/>
 
-## Support Development
+## Maintainer
 
-If you find AppLock useful, please consider supporting its development with a small donation.
-Every contribution matters.
+Maintained by It Is Unique Official
 
-**OpenCollective:** https://opencollective.com/invokevirtual
-
-**Bitcoin (BTC):** `bc1qec5ccz85qn90a6zxnqnes0rx274cv6vw7j5x4g`
-
-**Ethereum (ETH):** `0xD80A8D6E0fa433A8bDFC2D3F325159Db70605816`
-
-**Solana (SOL):** `7FxTAJLmhXFp6wxVbUTpf8jDmzEX1CKVMdE8oLPNQvyb`
-
-**Litecoin (LTC):** `ltc1q3pqyj5ge5rdmqr00w03x4tlhm6rhcc6wrfyx8k`
-
-**Monero (XMR):**
-`44w9JtiXxwifyH5CU6Ln1BNViyWNz4z7pEZ4nqbCvUejiK3yEjdyAv6bAofXX2Eh6Fbe3DXJ6eCX6YWKh9SF15fyKBjeJ5H`
-
-<br/>
-
-**UPI (India):** `pranavpurwar@fam`
-
-<img src="https://github.com/PranavPurwar/Reef/raw/refs/heads/main/upi.jpeg" width="200" />
+Website: https://lockify.itisuniqueofficial.com/
+Portfolio: https://my.itisuniqueofficial.com
+YouTube: https://www.youtube.com/@itisuniqueofficial_yt
+Instagram: https://www.instagram.com/jayadtt_khodave
+LinkedIn: https://in.linkedin.com/in/iamjaydatt
 
 ---
 
 ## License
 
-```text
-MIT License
-
-Copyright (c) 2023-2025 Pranav Purwar
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-```
+Released under the MIT License. See `LICENSE`.
