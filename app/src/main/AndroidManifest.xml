@@ -60,6 +60,31 @@
             android:theme="@android:style/Theme.Material.NoActionBar.TranslucentDecor" />
 
         <activity
+            android:name=".features.lockscreen.ui.InstantBlockerActivity"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:taskAffinity=""
+            android:launchMode="singleTop"
+            android:theme="@android:style/Theme.Material.NoActionBar.TranslucentDecor" />
+
+        <!--
+            RecentsPrivacyActivity — the Chrome-Incognito-style privacy placeholder.
+            Shown in the Recent Apps screen instead of real protected app content.
+            taskAffinity="" lets it be launched into any task via FLAG_ACTIVITY_NEW_TASK.
+            excludeFromRecents="false" is intentional: this IS the recents card.
+            launchMode="singleTask" ensures one instance per task slot.
+        -->
+        <activity
+            android:name=".features.recents.RecentsPrivacyActivity"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
+            android:excludeFromRecents="false"
+            android:exported="false"
+            android:taskAffinity=""
+            android:launchMode="singleTask"
+            android:theme="@style/Theme.AppLock" />
+
+        <activity
             android:name=".features.admin.AdminDisableActivity"
             android:exported="false"
             android:theme="@style/Theme.AppLock" />

@@ -43,6 +43,7 @@ import androidx.navigation.NavController
 import com.itisuniqueofficial.lockify.AppLockApplication
 import com.itisuniqueofficial.lockify.R
 import com.itisuniqueofficial.lockify.core.navigation.Screen
+import com.itisuniqueofficial.lockify.core.utils.appLockRepository
 import com.itisuniqueofficial.lockify.data.repository.PreferencesRepository
 import com.itisuniqueofficial.lockify.features.lockscreen.ui.KeypadRow
 import com.itisuniqueofficial.lockify.features.lockscreen.ui.PasswordIndicators
@@ -72,7 +73,7 @@ fun SetPasswordScreen(
     val context = LocalContext.current
     val activity = LocalActivity.current as? ComponentActivity
     val appLockRepository = remember {
-        (context.applicationContext as? AppLockApplication)?.appLockRepository
+        context.appLockRepository()
     }
 
     val configuration = LocalConfiguration.current

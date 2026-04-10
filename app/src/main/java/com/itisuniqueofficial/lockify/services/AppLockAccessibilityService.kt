@@ -21,13 +21,22 @@ import com.itisuniqueofficial.lockify.core.utils.appLockRepository
 import com.itisuniqueofficial.lockify.data.repository.AppLockRepository
 import com.itisuniqueofficial.lockify.data.repository.BackendImplementation
 import com.itisuniqueofficial.lockify.features.lockscreen.ui.PasswordOverlayActivity
+import com.itisuniqueofficial.lockify.features.recents.RecentsPrivacyActivity
 import com.itisuniqueofficial.lockify.services.AppLockConstants.ACCESSIBILITY_SETTINGS_CLASSES
 import com.itisuniqueofficial.lockify.services.AppLockConstants.EXCLUDED_APPS
 
 @SuppressLint("AccessibilityPolicy")
 class AppLockAccessibilityService : AccessibilityService() {
     private val appLockRepository: AppLockRepository by lazy { applicationContext.appLockRepository() }
-    private val keyboardPackages: List<String> by lazy { getKeyboardPackageNames() }
+    // Cache keyboard packages; refreshed lazily when the IME list changes
+    private var keyboardPackages: List<String> = emptyList()
+    private var keyboardPackagesCachedAt: Long = 0L
+    private val KEYBOARD_CACHE_TTL_MS = 60_000L // refresh at most once per minute
+
+    // Cache the default launcher package name; refreshed every 5 minutes
+    private var cachedLauncherPackage: String = ""
+    private var launcherPackageCachedAt: Long = 0L
+    private val LAUNCHER_CACHE_TTL_MS = 300_000L // refresh at most once per 5 minutes
 
     private var recentsOpen = false
     private var lastForegroundPackage = ""
@@ -48,11 +57,19 @@ class AppLockAccessibilityService : AccessibilityService() {
     private val screenStateReceiver = object : android.content.BroadcastReceiver() {
         override fun onReceive(context: android.content.Context?, intent: Intent?) {
             try {
-                if (intent?.action == Intent.ACTION_SCREEN_OFF) {
-                    LogUtils.d(TAG, "Screen off detected. Resetting AppLock state.")
-                    AppLockManager.isLockScreenShown.set(false)
-                    AppLockManager.clearTemporarilyUnlockedApp()
-                    AppLockManager.appUnlockTimes.clear()
+                when (intent?.action) {
+                    Intent.ACTION_SCREEN_OFF -> {
+                        LogUtils.d(TAG, "Screen off detected. Clearing all unlock state for privacy.")
+                        AppLockManager.isLockScreenShown.set(false)
+                        AppLockManager.recordScreenOff()
+                        AppLockManager.clearAllUnlockState()
+                        lastForegroundPackage = ""
+                    }
+                    Intent.ACTION_USER_PRESENT -> {
+                        // Device unlocked — reset screen-off state so next app open
+                        // doesn't incorrectly trigger a relock due to stale screen-off time.
+                        LogUtils.d(TAG, "Device unlocked (ACTION_USER_PRESENT)")
+                    }
                 }
             } catch (e: Exception) {
                 logError("Error in screenStateReceiver", e)
@@ -66,6 +83,8 @@ class AppLockAccessibilityService : AccessibilityService() {
             isServiceRunning = true
             AppLockManager.currentBiometricState = BiometricState.IDLE
             AppLockManager.isLockScreenShown.set(false)
+            // Pre-warm keyboard package cache
+            refreshKeyboardPackagesIfNeeded()
             startPrimaryBackendService()
 
             val filter = android.content.IntentFilter().apply {
@@ -161,16 +180,22 @@ class AppLockAccessibilityService : AccessibilityService() {
             isRecentlyOpened -> {
                 LogUtils.d(TAG, "Entering recents")
                 recentsOpen = true
-                // If a protected app was in the foreground, show the lock screen immediately
-                // so the recents thumbnail captures the lock screen, not the app content.
-                val lastPkg = lastForegroundPackage
-                if (lastPkg.isNotEmpty() &&
-                    lastPkg in appLockRepository.getLockedApps() &&
-                    AppLockManager.isAppTemporarilyUnlocked(lastPkg)
-                ) {
-                    LogUtils.d(TAG, "Protected app $lastPkg going to recents — triggering lock for privacy")
-                    AppLockManager.clearTemporarilyUnlockedApp()
-                    AppLockManager.appUnlockTimes.remove(lastPkg)
+                // When lock-on-minimize is enabled (default ON), launch the privacy placeholder
+                // into the protected app's task so the recents thumbnail shows the placeholder
+                // instead of real app content — identical to Chrome Incognito behaviour.
+                // Only launch if the app was actually unlocked (user saw content).
+                if (appLockRepository.isLockOnMinimizeEnabled()) {
+                    val lastPkg = lastForegroundPackage
+                    if (lastPkg.isNotEmpty() && lastPkg in appLockRepository.getLockedApps() &&
+                        (AppLockManager.isAppTemporarilyUnlocked(lastPkg) ||
+                         AppLockManager.appUnlockTimes.containsKey(lastPkg))
+                    ) {
+                        LogUtils.d(TAG, "Protected app $lastPkg going to recents — launching privacy placeholder")
+                        AppLockManager.clearTemporarilyUnlockedApp()
+                        AppLockManager.appUnlockTimes.remove(lastPkg)
+                        AppLockManager.isLockScreenShown.set(false)
+                        launchRecentsPrivacyPlaceholder(lastPkg)
+                    }
                 }
             }
             isHomeScreenTransition(event) && recentsOpen -> {
@@ -186,7 +211,18 @@ class AppLockAccessibilityService : AccessibilityService() {
             isAppSwitchedFromRecents(event) -> {
                 LogUtils.d(TAG, "App switched from recents")
                 recentsOpen = false
-                clearTemporarilyUnlockedAppIfNeeded(event.packageName?.toString())
+                val switchedToPackage = event.packageName?.toString()
+                // PRIVACY FIX: When returning from recents to a protected app and
+                // lock-on-minimize is enabled (default ON), force relock.
+                if (appLockRepository.isLockOnMinimizeEnabled() &&
+                    switchedToPackage != null &&
+                    switchedToPackage in appLockRepository.getLockedApps()
+                ) {
+                    LogUtils.d(TAG, "Returning to protected app $switchedToPackage from recents — clearing unlock state (lock-on-minimize ON)")
+                    AppLockManager.clearTemporarilyUnlockedApp()
+                    AppLockManager.appUnlockTimes.remove(switchedToPackage)
+                }
+                clearTemporarilyUnlockedAppIfNeeded(switchedToPackage)
             }
         }
     }
@@ -231,11 +267,20 @@ class AppLockAccessibilityService : AccessibilityService() {
             return false
         }
         if (!shouldAccessibilityHandleLocking()) return false
+        refreshKeyboardPackagesIfNeeded()
         if (packageName == APP_PACKAGE_PREFIX ||
             packageName in keyboardPackages ||
             packageName in EXCLUDED_APPS
         ) return false
         return true
+    }
+
+    private fun refreshKeyboardPackagesIfNeeded() {
+        val now = System.currentTimeMillis()
+        if (now - keyboardPackagesCachedAt > KEYBOARD_CACHE_TTL_MS) {
+            keyboardPackages = getKeyboardPackageNames()
+            keyboardPackagesCachedAt = now
+        }
     }
 
     private fun processPackageLocking(packageName: String) {
@@ -283,7 +328,7 @@ class AppLockAccessibilityService : AccessibilityService() {
         LogUtils.d(TAG, "checkAndLockApp: pkg=$packageName, duration=$unlockDurationMinutes min")
 
         if (unlockDurationMinutes > 0 && unlockTimestamp > 0) {
-            if (unlockDurationMinutes >= 10_000) return
+            if (unlockDurationMinutes >= AppLockManager.UNLOCK_DURATION_UNTIL_SCREEN_OFF) return
 
             val durationMillis = unlockDurationMinutes.toLong() * 60L * 1000L
             val elapsedMillis = currentTime - unlockTimestamp
@@ -303,15 +348,18 @@ class AppLockAccessibilityService : AccessibilityService() {
     }
 
     private fun showLockScreenOverlay(packageName: String, triggeringPackage: String) {
-        LogUtils.d(TAG, "Locked app detected: $packageName. Showing overlay.")
+        LogUtils.d(TAG, "Locked app detected: $packageName. Showing overlay with instant privacy protection.")
         AppLockManager.isLockScreenShown.set(true)
 
+        // PRIVACY FIX: Launch lock screen with highest priority flags to minimize content exposure
         val intent = Intent(this, PasswordOverlayActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or
                     Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS or
                     Intent.FLAG_ACTIVITY_NO_ANIMATION or
                     Intent.FLAG_FROM_BACKGROUND or
-                    Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
+                    Intent.FLAG_ACTIVITY_REORDER_TO_FRONT or
+                    Intent.FLAG_ACTIVITY_NO_USER_ACTION or
+                    Intent.FLAG_ACTIVITY_SINGLE_TOP
             putExtra("locked_package", packageName)
             putExtra("triggering_package", triggeringPackage)
         }
@@ -405,7 +453,7 @@ class AppLockAccessibilityService : AccessibilityService() {
         return try {
             val root = rootInActiveWindow ?: return null
             val windowText = buildString {
-                collectNodeText(root, this)
+                collectNodeText(root, this, 0)
             }.lowercase()
 
             // Check if any protected package name or its label appears in the window text
@@ -425,13 +473,14 @@ class AppLockAccessibilityService : AccessibilityService() {
         }
     }
 
-    private fun collectNodeText(node: android.view.accessibility.AccessibilityNodeInfo, sb: StringBuilder) {
+    private fun collectNodeText(node: android.view.accessibility.AccessibilityNodeInfo, sb: StringBuilder, depth: Int = 0) {
+        if (depth > 8) return // Limit recursion depth to prevent ANR on complex UIs
         try {
             node.text?.let { sb.append(it).append(' ') }
             node.contentDescription?.let { sb.append(it).append(' ') }
             for (i in 0 until node.childCount) {
                 val child = node.getChild(i) ?: continue
-                collectNodeText(child, sb)
+                collectNodeText(child, sb, depth + 1)
             }
         } catch (_: Exception) { /* ignore node access errors */ }
     }
@@ -495,7 +544,6 @@ class AppLockAccessibilityService : AccessibilityService() {
                 performGlobalAction(GLOBAL_ACTION_BACK)
                 performGlobalAction(GLOBAL_ACTION_BACK)
                 performGlobalAction(GLOBAL_ACTION_HOME)
-                Thread.sleep(100)
                 performGlobalAction(GLOBAL_ACTION_LOCK_SCREEN)
                 Toast.makeText(
                     this,
@@ -520,6 +568,10 @@ class AppLockAccessibilityService : AccessibilityService() {
     }
 
     fun getSystemDefaultLauncherPackageName(): String {
+        val now = System.currentTimeMillis()
+        if (cachedLauncherPackage.isNotEmpty() && now - launcherPackageCachedAt < LAUNCHER_CACHE_TTL_MS) {
+            return cachedLauncherPackage
+        }
         return try {
             val homeIntent = Intent(Intent.ACTION_MAIN).apply {
                 addCategory(Intent.CATEGORY_HOME)
@@ -533,10 +585,15 @@ class AppLockAccessibilityService : AccessibilityService() {
                 val isOurApp = resolveInfo.activityInfo.packageName == packageName
                 isSystemApp && !isOurApp
             }
-            systemLauncher?.activityInfo?.packageName ?: ""
+            val result = systemLauncher?.activityInfo?.packageName ?: ""
+            if (result.isNotEmpty()) {
+                cachedLauncherPackage = result
+                launcherPackageCachedAt = now
+            }
+            result
         } catch (e: Exception) {
             logError("Error getting system default launcher package", e)
-            ""
+            cachedLauncherPackage
         }
     }
 
@@ -569,7 +626,11 @@ class AppLockAccessibilityService : AccessibilityService() {
         return try {
             LogUtils.d(TAG, "Accessibility service unbound")
             isServiceRunning = false
-            AppLockManager.startFallbackServices(this, AppLockAccessibilityService::class.java)
+            // Accessibility service is system-managed — we cannot restart it.
+            // If usage stats backend is configured, start it as fallback.
+            if (appLockRepository.getBackendImplementation() == BackendImplementation.USAGE_STATS) {
+                AppLockManager.startFallbackServices(this, AppLockAccessibilityService::class.java)
+            }
             super.onUnbind(intent)
         } catch (e: Exception) {
             logError("Error in onUnbind", e)
@@ -588,9 +649,27 @@ class AppLockAccessibilityService : AccessibilityService() {
                 // already unregistered
             }
             AppLockManager.isLockScreenShown.set(false)
-            AppLockManager.startFallbackServices(this, AppLockAccessibilityService::class.java)
         } catch (e: Exception) {
             logError("Error in onDestroy", e)
+        }
+    }
+
+    /**
+     * Launches [RecentsPrivacyActivity] so the system snapshots the privacy placeholder
+     * instead of the real protected app content when building the recents thumbnail.
+     *
+     * The activity is launched with FLAG_ACTIVITY_NEW_TASK so it can be started from a
+     * service, and FLAG_ACTIVITY_NO_ANIMATION to avoid any visible transition flash.
+     * Because its taskAffinity is empty it lands in its own task slot in recents, which
+     * is exactly what we want — the user sees the placeholder card, not the real app.
+     */
+    private fun launchRecentsPrivacyPlaceholder(lockedPackage: String) {
+        try {
+            val intent = RecentsPrivacyActivity.buildIntent(this, lockedPackage)
+            startActivity(intent)
+            LogUtils.d(TAG, "Launched recents privacy placeholder for $lockedPackage")
+        } catch (e: Exception) {
+            logError("Failed to launch recents privacy placeholder for $lockedPackage", e)
         }
     }
 

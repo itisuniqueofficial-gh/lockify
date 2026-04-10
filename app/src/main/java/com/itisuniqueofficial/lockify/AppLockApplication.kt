@@ -3,11 +3,9 @@
 import android.app.Application
 import android.content.Context
 import android.os.Build
-import android.util.Log
 import com.itisuniqueofficial.lockify.core.utils.LogUtils
 import com.itisuniqueofficial.lockify.data.repository.AppLockRepository
 import org.lsposed.hiddenapibypass.HiddenApiBypass
-import kotlin.concurrent.thread
 
 class AppLockApplication : Application() {
 
@@ -27,17 +25,11 @@ class AppLockApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
-        try {
-            appLockRepository = AppLockRepository(this)
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to initialize application components", e)
-        }
-
+        appLockRepository = AppLockRepository(this)
         LogUtils.initialize(this)
         LogUtils.setLoggingEnabled(appLockRepository.isLoggingEnabled())
-        thread(start = true, name = "LogPurge") {
-            LogUtils.purgeOldLogs()
-        }
+        // purgeOldLogs already spawns its own daemon thread internally
+        LogUtils.purgeOldLogs()
     }
 
     companion object {

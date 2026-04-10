@@ -1,10 +1,9 @@
+🔐 Lockify – Update v1.0.3
 
-* Add optional unlock timer for locked apps (#10)
-* Fix problems with lock screen opening wrong screen for inter-app links (#8)
-* Reduce biometric security requirements so that it works on more devices (#12)
-* Lock all apps when the device is locked (#10)
+• Improved overall app stability and internal logic
+• Enhanced privacy protection and recent-app security
+• Improved app locking responsiveness and behavior
+• Fixed bugs and optimized performance
+• General refinements for a smoother premium experience
 
----
-
-Thank you for choosing AppLock for your privacy needs. We welcome your feedback and suggestions
-through GitHub issues!
+Thank you for using Lockify!

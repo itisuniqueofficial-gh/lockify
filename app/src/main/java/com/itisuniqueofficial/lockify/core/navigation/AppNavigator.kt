@@ -178,18 +178,18 @@ private fun handleBiometricAuthentication(
             }
         )
 
-        val promptInfo = createBiometricPromptInfo()
+        val promptInfo = createBiometricPromptInfo(context)
         biometricPrompt.authenticate(promptInfo)
     } catch (e: Exception) {
         Log.e(TAG, "Error during biometric authentication", e)
     }
 }
 
-private fun createBiometricPromptInfo(): BiometricPrompt.PromptInfo {
+private fun createBiometricPromptInfo(context: android.content.Context): BiometricPrompt.PromptInfo {
     return BiometricPrompt.PromptInfo.Builder()
-        .setTitle(BIOMETRIC_TITLE)
-        .setSubtitle(BIOMETRIC_SUBTITLE)
-        .setNegativeButtonText(BIOMETRIC_NEGATIVE_BUTTON)
+        .setTitle(context.getString(R.string.biometric_prompt_title))
+        .setSubtitle(context.getString(R.string.confirm_biometric_subtitle))
+        .setNegativeButtonText(context.getString(R.string.use_pin_button))
         .setAllowedAuthenticators(
             BiometricManager.Authenticators.BIOMETRIC_WEAK or
                     BiometricManager.Authenticators.BIOMETRIC_STRONG
@@ -215,7 +215,4 @@ private fun navigateToMain(navController: NavHostController) {
 private const val TAG = "AppNavHost"
 private const val ANIMATION_DURATION = 400
 private const val SCALE_INITIAL = 0.9f
-private const val BIOMETRIC_TITLE = "Confirm password"
-private const val BIOMETRIC_SUBTITLE = "Confirm biometric to continue"
-private const val BIOMETRIC_NEGATIVE_BUTTON = "Use PIN"
 

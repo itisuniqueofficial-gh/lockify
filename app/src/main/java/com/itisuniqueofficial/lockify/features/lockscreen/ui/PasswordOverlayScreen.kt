@@ -70,7 +70,6 @@ class PasswordOverlayActivity : FragmentActivity() {
 
     private var isBiometricPromptShowingLocal = false
     private var movedToBackground = false
-    private var appName: String = ""
     // Reactive state so the lock screen title updates once the app name loads
     private val appNameState = androidx.compose.runtime.mutableStateOf("")
 
@@ -119,13 +118,20 @@ class PasswordOverlayActivity : FragmentActivity() {
     }
 
     private fun setupWindow() {
+        // Apply comprehensive privacy and security flags
+        @Suppress("DEPRECATION")
         val flags = WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON or
                 WindowManager.LayoutParams.FLAG_ALLOW_LOCK_WHILE_SCREEN_ON or
-                WindowManager.LayoutParams.FLAG_SECURE
+                WindowManager.LayoutParams.FLAG_SECURE or
+                WindowManager.LayoutParams.FLAG_FULLSCREEN or
+                WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
+                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
 
         @Suppress("DEPRECATION")
         val legacyFlags = if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O_MR1) {
-            WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON
+            WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON or
+                    WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD or
+                    WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED
         } else 0
 
         window.addFlags(flags or legacyFlags)
@@ -139,14 +145,14 @@ class PasswordOverlayActivity : FragmentActivity() {
             window.setHideOverlayWindows(true)
         }
 
-
-        val layoutParams = window.attributes
-        layoutParams.type = WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
-
         if (appLockRepository.shouldUseMaxBrightness()) {
-            layoutParams.screenBrightness = WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_FULL
+            window.attributes = window.attributes.apply {
+                screenBrightness = WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_FULL
+            }
         }
-        window.attributes = layoutParams
+
+        // Apply privacy protection through manager
+        com.itisuniqueofficial.lockify.services.PrivacyProtectionManager.secureActivity(this)
     }
 
     private fun loadAppNameAsync() {
@@ -161,7 +167,6 @@ class PasswordOverlayActivity : FragmentActivity() {
                     getString(R.string.default_app_name)
                 }
             }
-            appName = name
             appNameState.value = name
         }
     }
@@ -223,6 +228,8 @@ class PasswordOverlayActivity : FragmentActivity() {
 
         setContent {
             AppLockTheme {
+                // Use reactive appNameState so the title updates once the name loads async
+                val currentAppName = appNameState.value
                 Scaffold(
                     modifier = Modifier.fillMaxSize(),
                     contentColor = MaterialTheme.colorScheme.primaryContainer
@@ -233,7 +240,7 @@ class PasswordOverlayActivity : FragmentActivity() {
                             PatternLockScreen(
                                 modifier = Modifier.padding(innerPadding),
                                 fromMainActivity = false,
-                                lockedAppName = appName,
+                                lockedAppName = currentAppName,
                                 triggeringPackageName = triggeringPackageNameFromIntent,
                                 onPatternAttempt = onPatternAttemptCallback,
                                 onForgotPassword = onForgotPasswordCallback
@@ -247,7 +254,7 @@ class PasswordOverlayActivity : FragmentActivity() {
                                 fromMainActivity = false,
                                 onBiometricAuth = { triggerBiometricPrompt() },
                                 onAuthSuccess = {},
-                                lockedAppName = appName,
+                                lockedAppName = currentAppName,
                                 triggeringPackageName = triggeringPackageNameFromIntent,
                                 onPinAttempt = onPinAttemptCallback,
                                 onForgotPassword = onForgotPasswordCallback
@@ -268,7 +275,7 @@ class PasswordOverlayActivity : FragmentActivity() {
         biometricPrompt =
             BiometricPrompt(this@PasswordOverlayActivity, executor, authenticationCallbackInternal)
 
-        val appNameForPrompt = appName.ifEmpty { getString(R.string.this_app) }
+        val appNameForPrompt = appNameState.value.ifEmpty { getString(R.string.this_app) }
         promptInfo = BiometricPrompt.PromptInfo.Builder()
             .setTitle(getString(R.string.unlock_app_title, appNameForPrompt))
             .setSubtitle(getString(R.string.confirm_biometric_subtitle))
@@ -306,18 +313,13 @@ class PasswordOverlayActivity : FragmentActivity() {
         super.onResume()
         movedToBackground = false
         AppLockManager.isLockScreenShown.set(true) // Set to true when activity is visible
-        lifecycleScope.launch {
-            applyUserPreferences()
-        }
+        applyUserPreferences()
     }
 
     private fun applyUserPreferences() {
         if (appLockRepository.shouldUseMaxBrightness()) {
             window.attributes = window.attributes.apply {
                 screenBrightness = WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_FULL
-            }
-            if (window.decorView.isAttachedToWindow) {
-                windowManager.updateViewLayout(window.decorView, window.attributes)
             }
         }
     }
@@ -357,11 +359,11 @@ class PasswordOverlayActivity : FragmentActivity() {
     override fun onStop() {
         super.onStop()
         movedToBackground = true
-        AppLockManager.isLockScreenShown.set(false)
         // Only finish if we are not showing a biometric prompt and not changing configuration.
         // The biometric prompt moves the activity to stopped state on some devices/OEMs —
         // finishing here would destroy the lock screen while auth is in progress.
         if (!isChangingConfigurations() && !isBiometricPromptShowingLocal && !isFinishing && !isDestroyed) {
+            AppLockManager.isLockScreenShown.set(false)
             AppLockManager.reportBiometricAuthFinished()
             finish()
         }
@@ -371,6 +373,7 @@ class PasswordOverlayActivity : FragmentActivity() {
         super.onDestroy()
         AppLockManager.isLockScreenShown.set(false)
         AppLockManager.reportBiometricAuthFinished()
+        com.itisuniqueofficial.lockify.services.PrivacyProtectionManager.unsecureActivity(this)
         Log.d(TAG, "PasswordOverlayActivity onDestroy for $lockedPackageNameFromIntent")
     }
 }
@@ -483,7 +486,9 @@ fun PasswordOverlayScreen(
                         onPasswordChange = {
                             showError = false
 
-                            if (appLockRepository.isAutoUnlockEnabled()) {
+                            if (appLockRepository.isAutoUnlockEnabled() &&
+                                passwordState.value.length >= minLength
+                            ) {
                                 onPinAttempt?.invoke(passwordState.value)
                             }
                         },
@@ -562,7 +567,9 @@ fun PasswordOverlayScreen(
                     onPasswordChange = {
                         showError = false
 
-                        if (appLockRepository.isAutoUnlockEnabled()) {
+                        if (appLockRepository.isAutoUnlockEnabled() &&
+                            passwordState.value.length >= minLength
+                        ) {
                             onPinAttempt?.invoke(passwordState.value)
                         }
                     },

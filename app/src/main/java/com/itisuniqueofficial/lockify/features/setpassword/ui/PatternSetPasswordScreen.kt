@@ -44,6 +44,7 @@ import com.mrhwsn.composelock.PatternLock
 import com.itisuniqueofficial.lockify.AppLockApplication
 import com.itisuniqueofficial.lockify.R
 import com.itisuniqueofficial.lockify.core.navigation.Screen
+import com.itisuniqueofficial.lockify.core.utils.appLockRepository
 import com.itisuniqueofficial.lockify.core.utils.vibrate
 import com.itisuniqueofficial.lockify.data.repository.PreferencesRepository
 
@@ -67,7 +68,7 @@ fun PatternSetPasswordScreen(
     val context = LocalContext.current
     val activity = LocalActivity.current as? ComponentActivity
     val appLockRepository = remember {
-        (context.applicationContext as? AppLockApplication)?.appLockRepository
+        context.appLockRepository()
     }
 
     val windowInfo = LocalWindowInfo.current
@@ -228,7 +229,7 @@ fun PatternSetPasswordScreen(
 
                     if (showMismatchError) {
                         Text(
-                            text = "Incorrect Pattern",
+                            text = stringResource(R.string.pins_dont_match_error),
                             color = MaterialTheme.colorScheme.error,
                             style = MaterialTheme.typography.bodySmall,
                             textAlign = TextAlign.Center
@@ -236,7 +237,7 @@ fun PatternSetPasswordScreen(
                     }
                     if (showMinLengthError) {
                         Text(
-                            text = "Patter length should be at least 4",
+                            text = stringResource(R.string.pattern_min_length_error),
                             color = MaterialTheme.colorScheme.error,
                             style = MaterialTheme.typography.bodySmall,
                             textAlign = TextAlign.Center
@@ -244,7 +245,7 @@ fun PatternSetPasswordScreen(
                     }
                     if (showInvalidOldPasswordError) {
                         Text(
-                            text = "Incorrect pattern",
+                            text = stringResource(R.string.incorrect_pattern_try_again),
                             color = MaterialTheme.colorScheme.error,
                             style = MaterialTheme.typography.bodySmall,
                             textAlign = TextAlign.Center
@@ -377,7 +378,7 @@ fun PatternSetPasswordScreen(
                     if (showMinLengthError) {
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "Patter length should be at least 4",
+                            text = stringResource(R.string.pattern_min_length_error),
                             color = MaterialTheme.colorScheme.error,
                             style = MaterialTheme.typography.labelLarge,
                             textAlign = TextAlign.Center
@@ -387,7 +388,7 @@ fun PatternSetPasswordScreen(
                     if (showInvalidOldPasswordError) {
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "Incorrect pattern",
+                            text = stringResource(R.string.incorrect_pattern_try_again),
                             color = MaterialTheme.colorScheme.error,
                             style = MaterialTheme.typography.labelLarge,
                             textAlign = TextAlign.Center

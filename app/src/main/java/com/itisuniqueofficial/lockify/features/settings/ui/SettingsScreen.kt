@@ -5,15 +5,7 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.widget.Toast
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.biometric.BiometricManager
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.runtime.rememberCoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -42,25 +34,31 @@ import com.itisuniqueofficial.lockify.R
 import com.itisuniqueofficial.lockify.core.broadcast.DeviceAdmin
 import com.itisuniqueofficial.lockify.core.navigation.Screen
 import com.itisuniqueofficial.lockify.core.utils.LogUtils
+import com.itisuniqueofficial.lockify.core.utils.appLockRepository
 import com.itisuniqueofficial.lockify.core.utils.hasUsagePermission
 import com.itisuniqueofficial.lockify.core.utils.isAccessibilityServiceEnabled
 import com.itisuniqueofficial.lockify.core.utils.openAccessibilitySettings
 import com.itisuniqueofficial.lockify.data.repository.AppLockRepository
 import com.itisuniqueofficial.lockify.data.repository.BackendImplementation
 import com.itisuniqueofficial.lockify.features.admin.AdminDisableActivity
+import com.itisuniqueofficial.lockify.services.AppLockManager
 import com.itisuniqueofficial.lockify.services.ExperimentalAppLockService
 import com.itisuniqueofficial.lockify.ui.components.AccessibilityDisclosureDialog
 import com.itisuniqueofficial.lockify.ui.components.DonateButton
 import com.itisuniqueofficial.lockify.ui.icons.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlin.math.abs
 
+@Suppress("ASSIGNED_BUT_NEVER_READ_VARIABLE")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
     navController: NavController
 ) {
     val context = LocalContext.current
-    val appLockRepository = remember { AppLockRepository(context) }
+    val appLockRepository = remember { context.appLockRepository() }
 
     var showDialog by remember { mutableStateOf(false) }
     var showUnlockTimeDialog by remember { mutableStateOf(false) }
@@ -70,6 +68,7 @@ fun SettingsScreen(
     var useBiometricAuth by remember { mutableStateOf(appLockRepository.isBiometricAuthEnabled()) }
     var unlockTimeDuration by remember { mutableIntStateOf(appLockRepository.getUnlockTimeDuration()) }
     var antiUninstallEnabled by remember { mutableStateOf(appLockRepository.isAntiUninstallEnabled()) }
+    var lockOnMinimizeEnabled by remember { mutableStateOf(appLockRepository.isLockOnMinimizeEnabled()) }
 
     // Re-sync anti-uninstall toggle with real Device Admin state whenever the screen is visible.
     // This handles the case where the user disabled it via AdminDisableActivity or system settings.
@@ -346,7 +345,8 @@ fun SettingsScreen(
                             icon = Timer,
                             title = stringResource(R.string.settings_screen_unlock_duration_title),
                             subtitle = if (unlockTimeDuration > 0) {
-                                if (unlockTimeDuration > 10_000) "Until screen off"
+                                if (unlockTimeDuration >= AppLockManager.UNLOCK_DURATION_UNTIL_SCREEN_OFF)
+                                    stringResource(R.string.settings_screen_unlock_duration_until_screen_off)
                                 else stringResource(
                                     R.string.settings_screen_unlock_duration_summary_minutes,
                                     unlockTimeDuration
@@ -388,6 +388,17 @@ fun SettingsScreen(
                                         Intent(context, AdminDisableActivity::class.java)
                                     )
                                 }
+                            }
+                        ),
+                        ToggleSettingItem(
+                            icon = Icons.Default.PhonelinkLock,
+                            title = stringResource(R.string.settings_screen_lock_on_minimize_title),
+                            subtitle = stringResource(R.string.settings_screen_lock_on_minimize_desc),
+                            checked = lockOnMinimizeEnabled,
+                            enabled = true,
+                            onCheckedChange = { isChecked ->
+                                lockOnMinimizeEnabled = isChecked
+                                appLockRepository.setLockOnMinimizeEnabled(isChecked)
                             }
                         )
                     )
@@ -505,24 +516,6 @@ fun SectionTitle(text: String) {
         color = MaterialTheme.colorScheme.primary,
         modifier = Modifier.padding(start = 16.dp, bottom = 4.dp, top = 4.dp)
     )
-}
-
-sealed class SettingItemType {
-    data class Toggle(
-        val icon: ImageVector,
-        val title: String,
-        val subtitle: String,
-        val checked: Boolean,
-        val enabled: Boolean,
-        val onCheckedChange: (Boolean) -> Unit
-    ): SettingItemType()
-
-    data class Action(
-        val icon: ImageVector,
-        val title: String,
-        val subtitle: String,
-        val onClick: () -> Unit
-    ): SettingItemType()
 }
 
 data class ToggleSettingItem(
@@ -725,7 +718,7 @@ fun UnlockTimeDurationDialog(
     onDismiss: () -> Unit,
     onConfirm: (Int) -> Unit
 ) {
-    val durations = listOf(0, 1, 5, 15, 30, 60, Integer.MAX_VALUE)
+    val durations = listOf(0, 1, 5, 15, 30, 60, AppLockManager.UNLOCK_DURATION_UNTIL_SCREEN_OFF)
     var selectedDuration by remember { mutableIntStateOf(currentDuration) }
 
     if (!durations.contains(selectedDuration)) {
@@ -758,7 +751,8 @@ fun UnlockTimeDurationDialog(
                                     duration
                                 )
                                 60 -> stringResource(R.string.settings_screen_unlock_duration_dialog_option_hour)
-                                Integer.MAX_VALUE -> "Until Screen Off"
+                                AppLockManager.UNLOCK_DURATION_UNTIL_SCREEN_OFF ->
+                                    stringResource(R.string.settings_screen_unlock_duration_until_screen_off)
                                 else -> stringResource(
                                     R.string.settings_screen_unlock_duration_summary_minutes,
                                     duration

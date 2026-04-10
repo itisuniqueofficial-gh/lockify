@@ -89,6 +89,10 @@ class AppLockRepository(private val context: Context) {
     fun setAccessibilityDisclosureAccepted(accepted: Boolean) =
         preferencesRepository.setAccessibilityDisclosureAccepted(accepted)
 
+    fun isLockOnMinimizeEnabled(): Boolean = preferencesRepository.isLockOnMinimizeEnabled()
+    fun setLockOnMinimizeEnabled(enabled: Boolean) =
+        preferencesRepository.setLockOnMinimizeEnabled(enabled)
+
     fun setActiveBackend(backend: BackendImplementation) =
         backendServiceManager.setActiveBackend(backend)
 

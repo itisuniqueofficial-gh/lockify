@@ -79,15 +79,14 @@ fun MainScreen(
     val lifecycleOwner = LocalLifecycleOwner.current
     var firstMissingPermission by remember { mutableStateOf<MissingPermission?>(null) }
 
-    LaunchedEffect(Unit) {
-        val appLockRepository = context.appLockRepository()
-        applockEnabled = appLockRepository.isProtectEnabled()
-    }
-
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
                 val appLockRepository = context.appLockRepository()
+                // Re-sync protection toggle and locked apps list on every resume
+                applockEnabled = appLockRepository.isProtectEnabled()
+                mainViewModel.refreshLockedApps()
+
                 val backend = appLockRepository.getBackendImplementation()
                 val isAntiUninstallEnabled = appLockRepository.isAntiUninstallEnabled()
                 val dpm =

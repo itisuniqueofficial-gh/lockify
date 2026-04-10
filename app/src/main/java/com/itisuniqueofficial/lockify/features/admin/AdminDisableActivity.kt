@@ -205,9 +205,8 @@ fun AdminDisableScreen(
                     val isValid = validatePassword(pin)
                     if (isValid) {
                         onPasswordVerified()
-                    } else {
-                        onCancel()
                     }
+                    // Do NOT call onCancel on wrong PIN — stay on screen and show error
                     isValid
                 },
                 onPasswordChange = { showError.value = false },

@@ -7,7 +7,6 @@ import android.util.Log
 import com.itisuniqueofficial.lockify.core.utils.LogUtils
 import com.itisuniqueofficial.lockify.core.utils.appLockRepository
 import com.itisuniqueofficial.lockify.data.repository.BackendImplementation
-import com.itisuniqueofficial.lockify.services.AppLockAccessibilityService
 import com.itisuniqueofficial.lockify.services.ExperimentalAppLockService
 
 class BootReceiver : BroadcastReceiver() {
@@ -34,12 +33,17 @@ class BootReceiver : BroadcastReceiver() {
         context: Context,
         repository: com.itisuniqueofficial.lockify.data.repository.AppLockRepository
     ) {
-        // Always start accessibility service — it handles anti-uninstall and is the fallback
-        startService(context, AppLockAccessibilityService::class.java)
-
-        // Also start the usage stats service if that backend is selected
-        if (repository.getBackendImplementation() == BackendImplementation.USAGE_STATS) {
-            startService(context, ExperimentalAppLockService::class.java)
+        when (repository.getBackendImplementation()) {
+            BackendImplementation.USAGE_STATS -> {
+                // Usage stats backend: start the foreground service.
+                // The accessibility service is bound by the system — we cannot start it manually.
+                startService(context, ExperimentalAppLockService::class.java)
+            }
+            BackendImplementation.ACCESSIBILITY -> {
+                // Accessibility service is bound by the system automatically when enabled.
+                // Nothing to start here — the system will bind it on boot if enabled.
+                LogUtils.d(TAG, "Accessibility backend selected — system will bind service automatically.")
+            }
         }
     }
 

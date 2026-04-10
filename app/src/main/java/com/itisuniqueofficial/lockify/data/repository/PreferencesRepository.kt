@@ -111,6 +111,13 @@ class PreferencesRepository(context: Context) {
         settingsPrefs.edit { putBoolean(KEY_ACCESSIBILITY_DISCLOSURE_ACCEPTED, accepted) }
     }
 
+    fun isLockOnMinimizeEnabled(): Boolean =
+        settingsPrefs.getBoolean(KEY_LOCK_ON_MINIMIZE, DEFAULT_LOCK_ON_MINIMIZE)
+
+    fun setLockOnMinimizeEnabled(enabled: Boolean) {
+        settingsPrefs.edit { putBoolean(KEY_LOCK_ON_MINIMIZE, enabled) }
+    }
+
     fun isLoggingEnabled(): Boolean = settingsPrefs.getBoolean(KEY_LOGGING_ENABLED, false)
     fun setLoggingEnabled(enabled: Boolean) {
         settingsPrefs.edit { putBoolean(KEY_LOGGING_ENABLED, enabled) }
@@ -139,6 +146,9 @@ class PreferencesRepository(context: Context) {
 
         private const val DEFAULT_PROTECT_ENABLED = true
         private const val DEFAULT_UNLOCK_DURATION = 0
+        private const val DEFAULT_LOCK_ON_MINIMIZE = true
+
+        private const val KEY_LOCK_ON_MINIMIZE = "lock_on_minimize"
 
         const val LOCK_TYPE_PIN = "pin"
         const val LOCK_TYPE_PATTERN = "pattern"

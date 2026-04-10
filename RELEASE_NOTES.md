@@ -1,3 +1,15 @@
+# Lockify v1.0.3 Release Notes
+
+## What's New in v1.0.3
+
+- Improved overall app stability and internal logic
+- Enhanced privacy protection and recent-app security
+- Improved app locking responsiveness and behavior
+- Performance optimizations
+- Bug fixes and general refinements
+
+---
+
 # Lockify v1.0.2 Release Notes
 
 ## What's New in v1.0.2

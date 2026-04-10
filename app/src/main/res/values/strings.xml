@@ -64,6 +64,7 @@ Make sure you have Shizuku installed and enabled via ADB. Tap \'Next\' to grant 
     <string name="unlock_app_title">Unlock %1$s</string>
     <string name="confirm_biometric_subtitle">Confirm biometric to continue</string>
     <string name="use_pin_button">Use PIN</string>
+    <string name="biometric_prompt_title">Confirm your identity</string>
     <string name="enter_password_to_continue">Enter password to continue</string>
     <string name="biometric_authentication_cd">Biometric Authentication</string>
 
@@ -153,6 +154,12 @@ Make sure you have Shizuku installed and enabled via ADB. Tap \'Next\' to grant 
     <string name="settings_screen_change_pin_desc">Update your current PIN</string>
     <string name="settings_screen_anti_uninstall_title">Anti-Uninstall Protection</string>
     <string name="settings_screen_anti_uninstall_desc">Prevent unauthorized uninstallation of Lockify</string>
+    <string name="settings_screen_lock_on_minimize_title">Lock on Minimize / Recent Apps</string>
+    <string name="settings_screen_lock_on_minimize_desc">Re-lock protected apps when minimized or viewed in recent apps</string>
+
+    <!-- Recents privacy placeholder -->
+    <string name="recents_privacy_title">App is protected</string>
+    <string name="recents_privacy_subtitle">Preview hidden for privacy\nLocked by Lockify</string>
     <string name="settings_screen_haptic_feedback_title">Haptic Feedback</string>
     <string name="settings_screen_haptic_feedback_desc">Disable haptic feedback on key presses</string>
     <string name="settings_screen_backend_implementation_title">Backend Implementation</string>
@@ -217,6 +224,7 @@ Make sure you have Shizuku installed and enabled via ADB. Tap \'Next\' to grant 
     <string name="settings_screen_join_community_title">Join Community</string>
     <string name="settings_screen_unlock_duration_summary_minutes">%1$d minutes</string>
     <string name="settings_screen_unlock_duration_summary_immediate">Lock immediately</string>
+    <string name="settings_screen_unlock_duration_until_screen_off">Until screen off</string>
     <string name="settings_screen_biometric_auth_desc_available">Use fingerprint or face unlock to
         unlock apps
     </string>
@@ -275,6 +283,7 @@ Make sure you have Shizuku installed and enabled via ADB. Tap \'Next\' to grant 
     <!-- Pattern Lock Strings -->
     <string name="enter_pattern_to_continue">Draw pattern to continue</string>
     <string name="incorrect_pattern_try_again">Incorrect pattern. Please try again.</string>
+    <string name="pattern_min_length_error">Pattern must connect at least 4 dots</string>
     <!-- Permission Warning Banner Strings -->
     <string name="permission_warning_overlay_title">Display over other apps</string>
     <string name="permission_warning_overlay_desc">Displays the lock screen over protected apps.</string>

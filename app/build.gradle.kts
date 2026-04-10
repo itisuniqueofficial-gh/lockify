@@ -9,15 +9,12 @@ android {
     namespace = "com.itisuniqueofficial.lockify"
     compileSdk = 36
 
-    // Builds with Canary Preview won't work on non-Canary devices
-    // compileSdkPreview = "CANARY"
-
     defaultConfig {
         applicationId = "com.itisuniqueofficial.lockify"
         minSdk = 26
         targetSdk = 36
-        versionCode = 3
-        versionName = "1.0.2"
+        versionCode = 4
+        versionName = "1.0.3"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -30,16 +27,22 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            // NOTE: Configure a proper release signing config before publishing to Play Store.
+            // Using debug signing config here is intentional for local/CI builds only.
+            // Replace with your release keystore configuration for production releases.
             signingConfig = signingConfigs.getByName("debug")
         }
     }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
+
     kotlin.compilerOptions {
         jvmTarget.set(JvmTarget.JVM_17)
     }
+
     buildFeatures {
         compose = true
     }
@@ -47,9 +50,6 @@ android {
     dependenciesInfo {
         includeInApk = false
         includeInBundle = false
-    }
-    kotlin.compilerOptions {
-        jvmTarget.set(JvmTarget.JVM_17)
     }
 }
 
@@ -73,8 +73,6 @@ dependencies {
     compileOnly(project(":hidden-api"))
     implementation(libs.hiddenapibypass)
     implementation(project(":patternlock"))
-
-
 
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)

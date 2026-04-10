@@ -4,7 +4,7 @@ import android.app.Application
 import android.content.pm.ApplicationInfo
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.itisuniqueofficial.lockify.data.repository.AppLockRepository
+import com.itisuniqueofficial.lockify.core.utils.appLockRepository
 import com.itisuniqueofficial.lockify.features.applist.domain.AppSearchManager
 import com.itisuniqueofficial.lockify.features.applist.ui.AppIconCache
 import kotlinx.coroutines.Dispatchers
@@ -16,7 +16,7 @@ import kotlinx.coroutines.withContext
 @OptIn(FlowPreview::class)
 class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val appSearchManager = AppSearchManager(application)
-    private val appLockRepository = AppLockRepository(application)
+    private val appLockRepository = application.appLockRepository()
 
     private val _isLoading = MutableStateFlow(true)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
@@ -100,6 +100,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun unlockApp(packageName: String) {
         appLockRepository.removeLockedApp(packageName)
+        _lockedApps.value = appLockRepository.getLockedApps()
+    }
+
+    /** Re-sync locked apps from storage (call on screen resume). */
+    fun refreshLockedApps() {
         _lockedApps.value = appLockRepository.getLockedApps()
     }
 }
