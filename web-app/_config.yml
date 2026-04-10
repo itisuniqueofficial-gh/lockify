@@ -12,7 +12,7 @@ brand:
   name: Lockify
   tagline: Secure App Lock & Privacy Protection
   package: com.itisuniqueofficial.lockify
-  version: "1.0.1"
+  version: "1.0.2"
   min_android: "8.0 (API 26)"
   play_store: "YOUR_PLAY_STORE_LINK_HERE"
 

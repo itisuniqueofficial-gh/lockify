@@ -1,11 +1,9 @@
+🔐 Lockify – Update v1.0.2
 
-* Anti Uninstall feature to prevent others from bypassing the lock (#6)
-* Switched internal implementation to Accessibility service for a more robust experience (#4)
-* Fixed issues in non miui xiaomi devices and other oems that ship different OS'es
-* Workaround to lock screen showing up when you go to recents from a locked app (#3)
-* More efficient and less battery intensive service
+• Fixed Anti-Uninstall feature issues
+• Improved lock screen trigger speed (no delay)
+• Fixed security logs export issue
+• Performance improvements and smoother experience
+• Bug fixes and stability improvements
 
----
-
-Thank you for choosing AppLock for your privacy needs. We welcome your feedback and suggestions
-through GitHub issues!
+Thank you for using Lockify!

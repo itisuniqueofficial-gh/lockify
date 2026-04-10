@@ -1,3 +1,15 @@
+# Lockify v1.0.2 Release Notes
+
+## What's New in v1.0.2
+
+- Fixed Anti-Uninstall feature not intercepting removal attempts for protected apps
+- Improved lock screen trigger speed — no visible preview of protected app content
+- Fixed security logs export always failing with "Failed to export" error
+- Performance improvements and smoother overall experience
+- Bug fixes and stability improvements
+
+---
+
 # Lockify v1.0.1 Release Notes
 
 ## What's New in v1.0.1
