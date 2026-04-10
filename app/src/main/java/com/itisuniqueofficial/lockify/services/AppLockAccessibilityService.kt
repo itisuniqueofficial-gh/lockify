@@ -161,6 +161,17 @@ class AppLockAccessibilityService : AccessibilityService() {
             isRecentlyOpened -> {
                 LogUtils.d(TAG, "Entering recents")
                 recentsOpen = true
+                // If a protected app was in the foreground, show the lock screen immediately
+                // so the recents thumbnail captures the lock screen, not the app content.
+                val lastPkg = lastForegroundPackage
+                if (lastPkg.isNotEmpty() &&
+                    lastPkg in appLockRepository.getLockedApps() &&
+                    AppLockManager.isAppTemporarilyUnlocked(lastPkg)
+                ) {
+                    LogUtils.d(TAG, "Protected app $lastPkg going to recents — triggering lock for privacy")
+                    AppLockManager.clearTemporarilyUnlockedApp()
+                    AppLockManager.appUnlockTimes.remove(lastPkg)
+                }
             }
             isHomeScreenTransition(event) && recentsOpen -> {
                 LogUtils.d(TAG, "Transitioning to home screen from recents")
@@ -340,11 +351,20 @@ class AppLockAccessibilityService : AccessibilityService() {
         val className = event.className?.toString() ?: ""
         val eventText = event.text.joinToString(" ").lowercase()
 
-        // Detect app removal confirmation screen/dialog
+        // Detect app removal confirmation screen/dialog.
+        // Be precise: only match the actual confirmation dialog/activity, NOT the app info
+        // screen (which always shows an "Uninstall" button and would cause false triggers).
         val isRemovalScreen = className.contains("UninstallActivity", ignoreCase = true) ||
                 className.contains("UninstallConfirm", ignoreCase = true) ||
                 className.contains("UninstallAppProgress", ignoreCase = true) ||
-                eventText.contains("uninstall") ||
+                // Confirmation dialog text — must contain both "uninstall" AND a confirm action
+                (eventText.contains("uninstall") && (
+                    eventText.contains("ok") ||
+                    eventText.contains("confirm") ||
+                    eventText.contains("delete") ||
+                    eventText.contains("clear data")
+                )) ||
+                eventText.contains("do you want to uninstall") ||
                 eventText.contains("do you want to remove") ||
                 eventText.contains("remove this app")
 

@@ -74,6 +74,8 @@ class AdminDisableActivity : ComponentActivity() {
                                         Toast.LENGTH_SHORT
                                     ).show()
                                     appLockRepository.setAntiUninstallEnabled(false)
+                                    // Remove Device Admin so system settings reflect the change
+                                    devicePolicyManager.removeActiveAdmin(deviceAdminComponentName)
                                     finish()
                                 },
                                 validatePattern = { inputPattern ->
@@ -111,7 +113,10 @@ class AdminDisableActivity : ComponentActivity() {
                                         R.string.password_verified_admin,
                                         Toast.LENGTH_SHORT
                                     ).show()
+                                    // Disable the SharedPreferences flag
                                     appLockRepository.setAntiUninstallEnabled(false)
+                                    // Also remove Device Admin so system settings reflect the change
+                                    devicePolicyManager.removeActiveAdmin(deviceAdminComponentName)
                                     finish()
                                 },
                                 onCancel = {

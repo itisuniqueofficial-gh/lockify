@@ -338,10 +338,14 @@ class PasswordOverlayActivity : FragmentActivity() {
 
     override fun onPause() {
         super.onPause()
-        if (!isChangingConfigurations() && !isBiometricPromptShowingLocal && !movedToBackground) {
-            AppLockManager.isLockScreenShown.set(false)
-            AppLockManager.reportBiometricAuthFinished()
-            finish()
+        // Only finish if we are truly leaving (not just a system dialog like biometric prompt
+        // or a configuration change). isBiometricPromptShowingLocal guards the biometric case.
+        // movedToBackground is set in onStop, so at onPause time it is still false for the
+        // biometric-prompt case — we must NOT finish here in that case.
+        if (!isChangingConfigurations() && !isBiometricPromptShowingLocal) {
+            // Do NOT finish here — wait for onStop to confirm we truly moved to background.
+            // Finishing in onPause causes the lock screen to disappear when the biometric
+            // system dialog briefly overlays this activity.
         }
     }
 
@@ -354,7 +358,10 @@ class PasswordOverlayActivity : FragmentActivity() {
         super.onStop()
         movedToBackground = true
         AppLockManager.isLockScreenShown.set(false)
-        if (!isChangingConfigurations() && !isFinishing && !isDestroyed) {
+        // Only finish if we are not showing a biometric prompt and not changing configuration.
+        // The biometric prompt moves the activity to stopped state on some devices/OEMs —
+        // finishing here would destroy the lock screen while auth is in progress.
+        if (!isChangingConfigurations() && !isBiometricPromptShowingLocal && !isFinishing && !isDestroyed) {
             AppLockManager.reportBiometricAuthFinished()
             finish()
         }

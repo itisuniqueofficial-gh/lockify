@@ -70,6 +70,26 @@ fun SettingsScreen(
     var useBiometricAuth by remember { mutableStateOf(appLockRepository.isBiometricAuthEnabled()) }
     var unlockTimeDuration by remember { mutableIntStateOf(appLockRepository.getUnlockTimeDuration()) }
     var antiUninstallEnabled by remember { mutableStateOf(appLockRepository.isAntiUninstallEnabled()) }
+
+    // Re-sync anti-uninstall toggle with real Device Admin state whenever the screen is visible.
+    // This handles the case where the user disabled it via AdminDisableActivity or system settings.
+    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+    androidx.compose.runtime.DisposableEffect(lifecycleOwner) {
+        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+            if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
+                val dpm = context.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
+                val component = ComponentName(context, DeviceAdmin::class.java)
+                val isAdminActive = dpm.isAdminActive(component)
+                // If Device Admin was revoked externally, sync the preference and toggle
+                if (!isAdminActive && appLockRepository.isAntiUninstallEnabled()) {
+                    appLockRepository.setAntiUninstallEnabled(false)
+                }
+                antiUninstallEnabled = appLockRepository.isAntiUninstallEnabled() && isAdminActive
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
     var disableHapticFeedback by remember { mutableStateOf(appLockRepository.shouldDisableHaptics()) }
     var loggingEnabled by remember { mutableStateOf(appLockRepository.isLoggingEnabled()) }
 
