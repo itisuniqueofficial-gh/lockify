@@ -1,4 +1,4 @@
-﻿package com.itisuniqueofficial.lockify.features.setpassword.ui
+package com.itisuniqueofficial.lockify.features.setpassword.ui
 
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -139,7 +139,7 @@ fun PatternSetPasswordScreen(
 
         when {
             isVerifyOldPasswordMode -> {
-                if (appLockRepository!!.validatePattern(patternState)) {
+                if (appLockRepository.validatePattern(patternState)) {
                     isVerifyOldPasswordMode = false
                     patternState = ""
                     showInvalidOldPasswordError = false
@@ -156,8 +156,8 @@ fun PatternSetPasswordScreen(
 
             else -> {
                 if (patternState == confirmPatternState) {
-                    appLockRepository?.setLockType(PreferencesRepository.LOCK_TYPE_PATTERN)
-                    appLockRepository?.setPattern(patternState)
+                    appLockRepository.setLockType(PreferencesRepository.LOCK_TYPE_PATTERN)
+                    appLockRepository.setPattern(patternState)
                     Toast.makeText(
                         context,
                         context.getString(R.string.password_set_successfully_toast),
@@ -318,13 +318,13 @@ fun PatternSetPasswordScreen(
                     animationDuration = 120,
                     callback = object : LockCallback {
                         override fun onStart(dot: Dot) {
-                            if (!appLockRepository!!.shouldDisableHaptics()) {
+                            if (!appLockRepository.shouldDisableHaptics()) {
                                 vibrate(context, 10)
                             }
                         }
 
                         override fun onDotConnected(dot: Dot) {
-                            if (!appLockRepository!!.shouldDisableHaptics()) {
+                            if (!appLockRepository.shouldDisableHaptics()) {
                                 vibrate(context, 10)
                             }
                         }
@@ -422,13 +422,13 @@ fun PatternSetPasswordScreen(
                         animationDuration = 120,
                         callback = object : LockCallback {
                             override fun onStart(dot: Dot) {
-                                if (!appLockRepository!!.shouldDisableHaptics()) {
+                                if (!appLockRepository.shouldDisableHaptics()) {
                                     vibrate(context, 10)
                                 }
                             }
 
                             override fun onDotConnected(dot: Dot) {
-                                if (!appLockRepository!!.shouldDisableHaptics()) {
+                                if (!appLockRepository.shouldDisableHaptics()) {
                                     vibrate(context, 10)
                                 }
                             }

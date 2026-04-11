@@ -1,4 +1,4 @@
-﻿package com.itisuniqueofficial.lockify.features.setpassword.ui
+package com.itisuniqueofficial.lockify.features.setpassword.ui
 
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -333,7 +333,7 @@ fun SetPasswordScreen(
                                 if (currentActivePassword.length >= minLength) {
                                     when {
                                         isVerifyOldPasswordMode -> {
-                                            if (appLockRepository!!.validatePassword(passwordState)) {
+                                            if (appLockRepository.validatePassword(passwordState)) {
                                                 isVerifyOldPasswordMode = false
                                                 passwordState = ""
                                                 showInvalidOldPasswordError = false
@@ -350,7 +350,7 @@ fun SetPasswordScreen(
 
                                         else -> {
                                             if (passwordState == confirmPasswordState) {
-                                                appLockRepository?.setPassword(passwordState)
+                                                appLockRepository.setPassword(passwordState)
                                                 Toast.makeText(
                                                     context,
                                                     context.getString(R.string.password_set_successfully_toast),
@@ -380,7 +380,7 @@ fun SetPasswordScreen(
                         }
                     }
 
-                    val disableHaptics = appLockRepository!!.shouldDisableHaptics()
+                    val disableHaptics = appLockRepository.shouldDisableHaptics()
 
                     KeypadRow(
                         disableHaptics = disableHaptics,
@@ -575,7 +575,7 @@ fun SetPasswordScreen(
                                 if (currentActivePassword.length >= minLength) {
                                     when {
                                         isVerifyOldPasswordMode -> {
-                                            if (appLockRepository!!.validatePassword(passwordState)) {
+                                            if (appLockRepository.validatePassword(passwordState)) {
                                                 isVerifyOldPasswordMode = false
                                                 passwordState = ""
                                                 showInvalidOldPasswordError = false
@@ -592,8 +592,8 @@ fun SetPasswordScreen(
 
                                         else -> {
                                             if (passwordState == confirmPasswordState) {
-                                                appLockRepository?.setLockType(PreferencesRepository.LOCK_TYPE_PIN)
-                                                appLockRepository?.setPassword(passwordState)
+                                                appLockRepository.setLockType(PreferencesRepository.LOCK_TYPE_PIN)
+                                                appLockRepository.setPassword(passwordState)
                                                 Toast.makeText(
                                                     context,
                                                     context.getString(R.string.password_set_successfully_toast),
@@ -623,7 +623,7 @@ fun SetPasswordScreen(
                         }
                     }
 
-                    val disableHaptics = appLockRepository!!.shouldDisableHaptics()
+                    val disableHaptics = appLockRepository.shouldDisableHaptics()
 
                     KeypadRow(
                         disableHaptics = disableHaptics,
