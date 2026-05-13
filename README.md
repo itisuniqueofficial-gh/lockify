@@ -117,11 +117,11 @@ On Windows PowerShell:
 
 Maintained by It Is Unique Official
 
-Website: https://lockify.itisuniqueofficial.com/
-Portfolio: https://my.itisuniqueofficial.com
-YouTube: https://www.youtube.com/@itisuniqueofficial_yt
-Instagram: https://www.instagram.com/jayadtt_khodave
-LinkedIn: https://in.linkedin.com/in/iamjaydatt
+* Website: https://lockify.itisuniqueofficial.com/
+* Portfolio: https://my.itisuniqueofficial.com
+* YouTube: https://www.youtube.com/@itisuniqueofficial_yt
+* Instagram: https://www.instagram.com/jayadtt_khodave
+* LinkedIn: https://in.linkedin.com/in/iamjaydatt
 
 ---
 
