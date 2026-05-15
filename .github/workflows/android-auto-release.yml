@@ -123,7 +123,7 @@ jobs:
           KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
-          ./gradlew --no-daemon clean :app:bundleRelease :app:assembleRelease
+          ./gradlew --no-daemon clean bundleRelease assembleRelease
 
       - name: Prepare release files
         shell: bash
@@ -143,8 +143,8 @@ jobs:
             exit 1
           fi
 
-          cp "$AAB_FILE" "release/app-release-${VERSION_NAME}-code${VERSION_CODE}.aab"
-          cp "$APK_FILE" "release/app-release-${VERSION_NAME}-code${VERSION_CODE}.apk"
+          cp "$AAB_FILE" "release/lockify-release-${VERSION_NAME}-code${VERSION_CODE}.aab"
+          cp "$APK_FILE" "release/lockify-release-${VERSION_NAME}-code${VERSION_CODE}.apk"
 
           ls -lah release
 

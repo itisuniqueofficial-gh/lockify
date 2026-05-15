@@ -12,8 +12,8 @@ When you push to `main` or `master`, or run the workflow manually, GitHub Action
 - Pushes the new tag using the GitHub Actions bot.
 - Uses the generated tag as the app `versionName` without the `v` prefix.
 - Uses the GitHub Actions run number as the app `versionCode`.
-- Builds a signed release Android App Bundle with `:app:bundleRelease`.
-- Builds a signed release APK with `:app:assembleRelease`.
+- Builds a signed release Android App Bundle with `bundleRelease`.
+- Builds a signed release APK with `assembleRelease`.
 - Renames both outputs into the `release/` directory.
 - Uploads both signed files as a workflow artifact.
 - Creates a GitHub Release for the generated tag.
@@ -36,8 +36,8 @@ Expected output:
 
 ```text
 release/
-  app-release-1.0.1-code123.aab
-  app-release-1.0.1-code123.apk
+  lockify-release-1.0.1-code123.aab
+  lockify-release-1.0.1-code123.apk
 ```
 
 ## 3. Required GitHub Secrets
@@ -140,12 +140,22 @@ Example:
 - Generated tag: `v1.0.1`
 - `VERSION_NAME`: `1.0.1`
 - `VERSION_CODE`: `123`
-- AAB file: `app-release-1.0.1-code123.aab`
-- APK file: `app-release-1.0.1-code123.apk`
+- AAB file: `lockify-release-1.0.1-code123.aab`
+- APK file: `lockify-release-1.0.1-code123.apk`
 
 GitHub run numbers increase on each workflow run, so Play Store `versionCode` increases automatically.
 
-## 9. How to trigger release by pushing to main
+## 9. How AAB/APK are generated
+
+The workflow builds only release outputs with this command:
+
+```bash
+./gradlew --no-daemon clean bundleRelease assembleRelease
+```
+
+The release build uses the Gradle `release` signing config and the upload keystore decoded from GitHub Secrets. Debug APKs are not created by this workflow.
+
+## 10. How to trigger release by pushing to main
 
 Push your code normally:
 
@@ -163,7 +173,7 @@ git push origin master
 
 The workflow creates the next tag and release automatically. You do not need to run `git tag` manually.
 
-## 10. Where to download AAB and APK
+## 11. Where to download release files
 
 Open this path in GitHub:
 
@@ -178,22 +188,13 @@ lockify-signed-release-v1.0.1
 Inside it, both signed files are included:
 
 ```text
-app-release-1.0.1-code123.aab
-app-release-1.0.1-code123.apk
+lockify-release-1.0.1-code123.aab
+lockify-release-1.0.1-code123.apk
 ```
 
-## 11. Where GitHub Release appears
+The files are also attached to the generated GitHub Release:
 
-Open this path in GitHub:
-
-GitHub -> Releases
-
-The release name is the generated tag, such as `v1.0.1`.
-
-The automatic release attaches both files:
-
-- `app-release-1.0.1-code123.aab`
-- `app-release-1.0.1-code123.apk`
+GitHub -> Releases -> generated tag such as `v1.0.1`
 
 ## 12. How to upload AAB to Play Console
 
@@ -223,7 +224,7 @@ If tag creation fails, check whether the generated tag already exists. The workf
 
 If no GitHub Release appears, check the `Create GitHub Release` step and confirm the workflow has `contents: write` permission.
 
-If the workflow cannot find the AAB or APK, confirm `:app:bundleRelease` and `:app:assembleRelease` succeeded and the Android app module is still named `app`.
+If the workflow cannot find the AAB or APK, confirm `bundleRelease` and `assembleRelease` succeeded and the Android app module is still named `app`.
 
 ## 14. Security best practices
 
