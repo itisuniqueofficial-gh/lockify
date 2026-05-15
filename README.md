@@ -106,7 +106,7 @@ On Windows PowerShell:
 
 ### Signed Play Store AAB builds
 
-See `DOCS-GITHUB.md` for the GitHub Actions signed AAB setup, automatic versioning, release tags, and Play Console upload steps.
+See `DOCS-GITHUB.md` for the fully automated GitHub Actions signed AAB release setup, automatic patch tags, GitHub Releases, and Play Console upload steps.
 
 ## Use Cases
 

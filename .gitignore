@@ -20,4 +20,5 @@ upload-key.*
 signing.properties
 .env
 .env.*
+release/
 *.dm

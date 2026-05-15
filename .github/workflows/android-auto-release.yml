@@ -1,0 +1,179 @@
+name: Android Auto Release
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: android-auto-release
+  cancel-in-progress: false
+
+jobs:
+  auto-release:
+    name: Build signed AAB and create release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK packages
+        run: sdkmanager "platforms;android-36" "build-tools;36.0.0"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Make Gradle wrapper executable
+        run: chmod +x ./gradlew
+
+      - name: Generate next release tag
+        id: version
+        shell: bash
+        run: |
+          git fetch --tags
+
+          LATEST_TAG=$(git tag --sort=-v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -n 1)
+
+          if [ -z "$LATEST_TAG" ]; then
+            LATEST_TAG="v1.0.0"
+          fi
+
+          VERSION="${LATEST_TAG#v}"
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
+
+          PATCH=$((PATCH + 1))
+
+          NEW_TAG="v${MAJOR}.${MINOR}.${PATCH}"
+          VERSION_NAME="${MAJOR}.${MINOR}.${PATCH}"
+          VERSION_CODE="${GITHUB_RUN_NUMBER}"
+
+          echo "RELEASE_TAG=$NEW_TAG" >> "$GITHUB_ENV"
+          echo "VERSION_NAME=$VERSION_NAME" >> "$GITHUB_ENV"
+          echo "VERSION_CODE=$VERSION_CODE" >> "$GITHUB_ENV"
+
+          echo "release_tag=$NEW_TAG" >> "$GITHUB_OUTPUT"
+          echo "version_name=$VERSION_NAME" >> "$GITHUB_OUTPUT"
+          echo "version_code=$VERSION_CODE" >> "$GITHUB_OUTPUT"
+
+      - name: Create and push release tag
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          if git rev-parse "$RELEASE_TAG" >/dev/null 2>&1; then
+            echo "Tag $RELEASE_TAG already exists"
+            exit 1
+          fi
+
+          git tag "$RELEASE_TAG"
+          git push origin "$RELEASE_TAG"
+
+      - name: Validate signing secrets
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          missing=0
+          for name in ANDROID_KEYSTORE_BASE64 ANDROID_KEYSTORE_PASSWORD ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD; do
+            if [ -z "${!name}" ]; then
+              echo "::error::$name GitHub secret is required for release signing"
+              missing=1
+            fi
+          done
+          if [ "$missing" -ne 0 ]; then
+            exit 1
+          fi
+
+      - name: Decode release keystore
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          keystore_path="${GITHUB_WORKSPACE}/release-keystore.jks"
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$keystore_path"
+          chmod 600 "$keystore_path"
+          echo "KEYSTORE_FILE=$keystore_path" >> "$GITHUB_ENV"
+
+      - name: Build signed AAB and APK
+        shell: bash
+        env:
+          VERSION_CODE: ${{ env.VERSION_CODE }}
+          VERSION_NAME: ${{ env.VERSION_NAME }}
+          KEYSTORE_FILE: ${{ github.workspace }}/release-keystore.jks
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          ./gradlew --no-daemon clean :app:bundleRelease :app:assembleRelease
+
+      - name: Prepare release files
+        shell: bash
+        run: |
+          mkdir -p release
+
+          AAB_FILE=$(find . -path "*/build/outputs/bundle/release/*.aab" | head -n 1)
+          APK_FILE=$(find . -path "*/build/outputs/apk/release/*.apk" | head -n 1)
+
+          if [ -z "$AAB_FILE" ]; then
+            echo "::error::Signed release AAB was not found"
+            exit 1
+          fi
+
+          if [ -z "$APK_FILE" ]; then
+            echo "::error::Signed release APK was not found"
+            exit 1
+          fi
+
+          cp "$AAB_FILE" "release/app-release-${VERSION_NAME}-code${VERSION_CODE}.aab"
+          cp "$APK_FILE" "release/app-release-${VERSION_NAME}-code${VERSION_CODE}.apk"
+
+          ls -lah release
+
+      - name: Upload signed release artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: lockify-signed-release-${{ env.RELEASE_TAG }}
+          path: |
+            release/*.aab
+            release/*.apk
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: ${{ env.RELEASE_TAG }}
+          tag_name: ${{ env.RELEASE_TAG }}
+          generate_release_notes: true
+          files: |
+            release/*.aab
+            release/*.apk
+          fail_on_unmatched_files: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Delete temporary keystore
+        if: always()
+        run: |
+          if [ -n "$KEYSTORE_FILE" ] && [ -f "$KEYSTORE_FILE" ]; then
+            shred -u "$KEYSTORE_FILE" || rm -f "$KEYSTORE_FILE"
+          fi

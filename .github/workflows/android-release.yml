@@ -1,12 +1,6 @@
 name: Android Release AAB
 
 on:
-  push:
-    branches:
-      - main
-      - master
-    tags:
-      - "v*"
   workflow_dispatch:
 
 permissions:
