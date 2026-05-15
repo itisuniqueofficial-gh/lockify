@@ -10,4 +10,14 @@
 .cxx
 local.properties
 *.jks
+*.keystore
+*.p12
+*.pem
+*.key
+keystore.properties
+release-key.*
+upload-key.*
+signing.properties
+.env
+.env.*
 *.dm

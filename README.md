@@ -104,6 +104,10 @@ On Windows PowerShell:
 .\gradlew.bat assembleDebug
 ```
 
+### Signed Play Store AAB builds
+
+See `DOCS-GITHUB.md` for the GitHub Actions signed AAB setup, automatic versioning, release tags, and Play Console upload steps.
+
 ## Use Cases
 
 - Shared devices
