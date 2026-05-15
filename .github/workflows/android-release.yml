@@ -93,23 +93,28 @@ jobs:
 
       - name: Rename signed AAB
         run: |
-          mkdir -p release-artifacts
-          cp app/build/outputs/bundle/release/app-release.aab "release-artifacts/${AAB_FILE_NAME}"
+          mkdir -p release
+          cp app/build/outputs/bundle/release/app-release.aab "release/${AAB_FILE_NAME}"
 
       - name: Upload signed AAB artifact
         uses: actions/upload-artifact@v4
         with:
           name: lockify-signed-release-aab
-          path: release-artifacts/*.aab
+          path: release/*.aab
           if-no-files-found: error
           retention-days: 30
 
-      - name: Create GitHub Release for tag
+      - name: Create GitHub Release
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          files: release-artifacts/*.aab
+          name: ${{ github.ref_name }}
+          tag_name: ${{ github.ref_name }}
+          generate_release_notes: true
+          files: release/*.aab
           fail_on_unmatched_files: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Delete temporary keystore
         if: always()
