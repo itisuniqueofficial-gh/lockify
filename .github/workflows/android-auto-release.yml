@@ -49,7 +49,7 @@ jobs:
         run: |
           git fetch --tags
 
-          LATEST_TAG=$(git tag --sort=-v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -n 1)
+          LATEST_TAG=$(git tag --sort=-v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sed -n '1p' || true)
 
           if [ -z "$LATEST_TAG" ]; then
             LATEST_TAG="v1.0.0"
