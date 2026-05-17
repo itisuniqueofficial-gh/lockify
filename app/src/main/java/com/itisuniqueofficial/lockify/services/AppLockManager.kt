@@ -8,6 +8,7 @@ import android.util.Log
 import com.itisuniqueofficial.lockify.core.utils.LogUtils
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicReference
 
 object AppLockConstants {
     val KNOWN_RECENTS_CLASSES = setOf(
@@ -54,15 +55,21 @@ fun Context.isServiceRunning(serviceClass: Class<*>): Boolean {
 
 object AppLockManager {
     private const val TAG = "AppLockManager"
+    private const val OVERLAY_DEBOUNCE_MS = 700L
 
     // Use AtomicReference for thread-safe string mutations
-    private val _temporarilyUnlockedApp = java.util.concurrent.atomic.AtomicReference("")
+    private val _temporarilyUnlockedApp = AtomicReference("")
     var temporarilyUnlockedApp: String
         get() = _temporarilyUnlockedApp.get()
         set(value) { _temporarilyUnlockedApp.set(value) }
 
     val appUnlockTimes = ConcurrentHashMap<String, Long>()
     val isLockScreenShown = AtomicBoolean(false)
+    private val currentLockPackage = AtomicReference("")
+
+    @Volatile
+    var lockState: LockState = LockState.IDLE
+        private set
 
     // Type-safe biometric state using the enum defined in AppLockAccessibilityService
     @Volatile
@@ -80,6 +87,49 @@ object AppLockManager {
 
     // Sentinel value for "unlock forever until screen off"
     const val UNLOCK_DURATION_UNTIL_SCREEN_OFF = 10_000
+
+    enum class LockState {
+        IDLE,
+        MONITORING,
+        PROTECTED_APP_DETECTED,
+        LOCK_SCREEN_VISIBLE,
+        AUTHENTICATING,
+        AUTH_SUCCESS,
+        AUTH_FAILED,
+        TEMPORARILY_UNLOCKED,
+        APP_MINIMIZED,
+        RELOCK_REQUIRED,
+        PERMISSION_MISSING,
+        SERVICE_RECOVERING
+    }
+
+    fun updateState(state: LockState) {
+        lockState = state
+        LogUtils.d(TAG, "Lock state: $state")
+    }
+
+    @Synchronized
+    fun beginLock(packageName: String): Boolean {
+        if (packageName.isBlank()) return false
+
+        val now = System.currentTimeMillis()
+        val activePackage = currentLockPackage.get()
+        val lockVisible = isLockScreenShown.get()
+        val lastAttempt = lastRestartTime["overlay:$packageName"] ?: 0L
+
+        if (lockVisible && activePackage == packageName) return false
+        if (now - lastAttempt < OVERLAY_DEBOUNCE_MS) return false
+
+        currentLockPackage.set(packageName)
+        lastRestartTime["overlay:$packageName"] = now
+        isLockScreenShown.set(true)
+        updateState(LockState.LOCK_SCREEN_VISIBLE)
+        return true
+    }
+
+    fun currentLockedPackage(): String = currentLockPackage.get()
+
+    fun isCurrentLockPackage(packageName: String): Boolean = currentLockPackage.get() == packageName
 
     fun setRecentlyLeftApp(packageName: String) {
         recentlyLeftApp = packageName
@@ -122,8 +172,11 @@ object AppLockManager {
     fun clearAllUnlockState() {
         _temporarilyUnlockedApp.set("")
         appUnlockTimes.clear()
+        currentLockPackage.set("")
         recentlyLeftApp = ""
         recentlyLeftTime = 0L
+        isLockScreenShown.set(false)
+        updateState(LockState.RELOCK_REQUIRED)
         LogUtils.d(TAG, "All unlock state cleared for privacy")
     }
 
@@ -135,8 +188,16 @@ object AppLockManager {
     )
 
     fun unlockApp(packageName: String) {
+        if (!isCurrentLockPackage(packageName) && isLockScreenShown.get()) {
+            LogUtils.d(TAG, "Ignoring auth success for stale package $packageName")
+            updateState(LockState.AUTH_FAILED)
+            return
+        }
         _temporarilyUnlockedApp.set(packageName)
         appUnlockTimes[packageName] = System.currentTimeMillis()
+        currentLockPackage.set("")
+        isLockScreenShown.set(false)
+        updateState(LockState.TEMPORARILY_UNLOCKED)
         LogUtils.d(TAG, "App $packageName unlocked at ${appUnlockTimes[packageName]}")
     }
 
@@ -147,10 +208,12 @@ object AppLockManager {
 
     fun reportBiometricAuthStarted() {
         currentBiometricState = AppLockAccessibilityService.BiometricState.AUTH_STARTED
+        updateState(LockState.AUTHENTICATING)
     }
 
     fun reportBiometricAuthFinished() {
         currentBiometricState = AppLockAccessibilityService.BiometricState.IDLE
+        if (isLockScreenShown.get()) updateState(LockState.LOCK_SCREEN_VISIBLE)
     }
 
     fun isAppTemporarilyUnlocked(packageName: String): Boolean =
@@ -158,6 +221,12 @@ object AppLockManager {
 
     fun clearTemporarilyUnlockedApp() {
         _temporarilyUnlockedApp.set("")
+    }
+
+    fun markLockDismissedWithoutUnlock() {
+        currentLockPackage.set("")
+        isLockScreenShown.set(false)
+        updateState(LockState.RELOCK_REQUIRED)
     }
 
     fun startFallbackServices(context: Context, failedService: Class<*>) {

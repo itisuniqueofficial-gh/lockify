@@ -5,6 +5,7 @@ refine = "4.4.0"
 hiddenapibypass = "6.1"
 biometric = "1.4.0-alpha02"
 fragmentKtx = "1.8.9"
+junit = "4.13.2"
 kotlin = "2.3.21"
 coreKtx = "1.18.0"
 lifecycleRuntimeKtx = "2.10.0"
@@ -36,6 +37,7 @@ refine-annotation = { module = "dev.rikka.tools.refine:annotation", version.ref 
 refine-annotation-processor = { module = "dev.rikka.tools.refine:annotation-processor", version.ref = "refine" }
 hiddenapibypass = { module = "org.lsposed.hiddenapibypass:hiddenapibypass", version.ref = "hiddenapibypass" }
 refine-runtime = { module = "dev.rikka.tools.refine:runtime", version.ref = "refine" }
+junit = { module = "junit:junit", version.ref = "junit" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

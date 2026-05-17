@@ -1,6 +1,7 @@
 package com.itisuniqueofficial.lockify.features.lockscreen.ui
 
 import android.content.Context
+import android.content.Intent
 import android.content.res.Configuration
 import android.os.Build
 import android.os.Bundle
@@ -27,7 +28,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
-import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -157,8 +157,13 @@ class PasswordOverlayActivity : FragmentActivity() {
     }
 
     private fun dismissOverlayFromBackPress() {
-        AppLockManager.isLockScreenShown.set(false)
+        AppLockManager.clearTemporarilyUnlockedApp()
+        AppLockManager.markLockDismissedWithoutUnlock()
         AppLockManager.reportBiometricAuthFinished()
+        startActivity(Intent(Intent.ACTION_MAIN).apply {
+            addCategory(Intent.CATEGORY_HOME)
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+        })
         finish()
     }
 
@@ -186,6 +191,8 @@ class PasswordOverlayActivity : FragmentActivity() {
                     AppLockManager.unlockApp(pkgName)
                     finishAfterTransition()
                 }
+            } else {
+                AppLockManager.updateState(AppLockManager.LockState.AUTH_FAILED)
             }
             isValid
         }
@@ -197,6 +204,8 @@ class PasswordOverlayActivity : FragmentActivity() {
                     AppLockManager.unlockApp(pkgName)
                     finishAfterTransition()
                 }
+            } else {
+                AppLockManager.updateState(AppLockManager.LockState.AUTH_FAILED)
             }
             isValid
         }
@@ -250,7 +259,6 @@ class PasswordOverlayActivity : FragmentActivity() {
                                 lockedAppName = currentAppName,
                                 triggeringPackageName = triggeringPackageNameFromIntent,
                                 onPatternAttempt = onPatternAttemptCallback,
-                                onClose = { dismissOverlayFromBackPress() },
                                 onForgotPassword = onForgotPasswordCallback
                             )
                         }
@@ -265,7 +273,6 @@ class PasswordOverlayActivity : FragmentActivity() {
                                 lockedAppName = currentAppName,
                                 triggeringPackageName = triggeringPackageNameFromIntent,
                                 onPinAttempt = onPinAttemptCallback,
-                                onClose = { dismissOverlayFromBackPress() },
                                 onForgotPassword = onForgotPasswordCallback
                             )
                         }
@@ -303,6 +310,7 @@ class PasswordOverlayActivity : FragmentActivity() {
                 super.onAuthenticationError(errorCode, errString)
                 isBiometricPromptShowingLocal = false
                 AppLockManager.reportBiometricAuthFinished()
+                AppLockManager.updateState(AppLockManager.LockState.AUTH_FAILED)
                 Log.w(TAG, "Authentication error: $errString ($errorCode)")
             }
 
@@ -322,6 +330,7 @@ class PasswordOverlayActivity : FragmentActivity() {
         super.onResume()
         movedToBackground = false
         AppLockManager.isLockScreenShown.set(true) // Set to true when activity is visible
+        AppLockManager.updateState(AppLockManager.LockState.LOCK_SCREEN_VISIBLE)
         applyUserPreferences()
     }
 
@@ -343,6 +352,7 @@ class PasswordOverlayActivity : FragmentActivity() {
                 Log.e(TAG, "Error calling biometricPrompt.authenticate: ${e.message}", e)
                 isBiometricPromptShowingLocal = false
                 AppLockManager.reportBiometricAuthFinished()
+                AppLockManager.updateState(AppLockManager.LockState.AUTH_FAILED)
             }
         }
     }
@@ -372,7 +382,7 @@ class PasswordOverlayActivity : FragmentActivity() {
         // The biometric prompt moves the activity to stopped state on some devices/OEMs —
         // finishing here would destroy the lock screen while auth is in progress.
         if (!isChangingConfigurations() && !isBiometricPromptShowingLocal && !isFinishing && !isDestroyed) {
-            AppLockManager.isLockScreenShown.set(false)
+            AppLockManager.markLockDismissedWithoutUnlock()
             AppLockManager.reportBiometricAuthFinished()
             finish()
         }
@@ -380,8 +390,10 @@ class PasswordOverlayActivity : FragmentActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        AppLockManager.isLockScreenShown.set(false)
-        AppLockManager.reportBiometricAuthFinished()
+        if (!isChangingConfigurations() && AppLockManager.currentLockedPackage() == lockedPackageNameFromIntent) {
+            AppLockManager.markLockDismissedWithoutUnlock()
+            AppLockManager.reportBiometricAuthFinished()
+        }
         com.itisuniqueofficial.lockify.services.PrivacyProtectionManager.unsecureActivity(this)
         Log.d(TAG, "PasswordOverlayActivity onDestroy for $lockedPackageNameFromIntent")
     }
@@ -399,7 +411,6 @@ fun PasswordOverlayScreen(
     lockedAppName: String? = null,
     triggeringPackageName: String? = null,
     onPinAttempt: ((pin: String) -> Boolean)? = null,
-    onClose: (() -> Unit)? = null,
     onForgotPassword: (() -> Unit)? = null
 ) {
     val appLockRepository = LocalContext.current.appLockRepository()
@@ -586,21 +597,6 @@ fun PasswordOverlayScreen(
                     },
                     onPinIncorrect = { showError = true }
                 )
-                }
-            }
-
-            if (!fromMainActivity && onClose != null) {
-                IconButton(
-                    onClick = onClose,
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .statusBarsPadding()
-                        .padding(top = 8.dp, end = 8.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Rounded.Close,
-                        contentDescription = stringResource(R.string.close_button)
-                    )
                 }
             }
         }

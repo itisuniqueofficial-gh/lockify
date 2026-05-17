@@ -257,7 +257,10 @@ class ExperimentalAppLockService : Service() {
         }
 
         LogUtils.d(TAG, "Locked app: $packageName. Showing overlay with privacy protection.")
-        AppLockManager.isLockScreenShown.set(true)
+        if (!AppLockManager.beginLock(packageName)) {
+            LogUtils.d(TAG, "Lock overlay already active or recently requested for $packageName")
+            return
+        }
 
         // PRIVACY FIX: Launch lock screen with highest priority flags to minimize content exposure
         val intent = Intent(this, PasswordOverlayActivity::class.java).apply {
@@ -276,7 +279,7 @@ class ExperimentalAppLockService : Service() {
             startActivity(intent)
         } catch (e: Exception) {
             Log.e(TAG, "Error starting overlay for: $packageName", e)
-            AppLockManager.isLockScreenShown.set(false)
+            AppLockManager.markLockDismissedWithoutUnlock()
         }
     }
 

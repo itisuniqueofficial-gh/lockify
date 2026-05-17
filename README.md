@@ -108,6 +108,15 @@ On Windows PowerShell:
 
 See `DOCS-GITHUB.md` for the fully automated GitHub Actions signed AAB release setup, automatic patch tags, GitHub Releases, and Play Console upload steps.
 
+Additional production notes:
+- `PRIVACY.md`
+- `SECURITY.md`
+- `PLAY-STORE-COMPLIANCE.md`
+- `RELEASE.md`
+- `TESTING.md`
+- `docs/permission-guide.md`
+- `docs/manual-qa-checklist.md`
+
 ## Use Cases
 
 - Shared devices

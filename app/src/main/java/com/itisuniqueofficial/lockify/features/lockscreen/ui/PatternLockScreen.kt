@@ -20,13 +20,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Close
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -58,7 +55,6 @@ fun PatternLockScreen(
     triggeringPackageName: String? = null,
     onPatternAttempt: ((pattern: String) -> Boolean)? = null,
     onBiometricAuth: (() -> Unit)? = null,
-    onClose: (() -> Unit)? = null,
     onForgotPassword: (() -> Unit)? = null
 ) {
     val appLockRepository = LocalContext.current.appLockRepository()
@@ -304,21 +300,6 @@ fun PatternLockScreen(
                         callback = lockCallback
                     )
                 }
-                }
-            }
-
-            if (!fromMainActivity && onClose != null) {
-                IconButton(
-                    onClick = onClose,
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .statusBarsPadding()
-                        .padding(top = 8.dp, end = 8.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Rounded.Close,
-                        contentDescription = stringResource(R.string.close_button)
-                    )
                 }
             }
         }

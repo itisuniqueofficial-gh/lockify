@@ -3,6 +3,7 @@
 import android.content.Context
 import android.content.SharedPreferences
 import androidx.core.content.edit
+import com.itisuniqueofficial.lockify.core.security.CredentialHasher
 
 /**
  * Repository for managing application preferences and settings.
@@ -15,18 +16,32 @@ class PreferencesRepository(context: Context) {
     private val settingsPrefs: SharedPreferences =
         context.getSharedPreferences(PREFS_NAME_SETTINGS, Context.MODE_PRIVATE)
 
-    fun setPassword(password: String) { appLockPrefs.edit { putString(KEY_PASSWORD, password) } }
+    fun setPassword(password: String) {
+        appLockPrefs.edit { putString(KEY_PASSWORD, CredentialHasher.hash(password)) }
+    }
     fun getPassword(): String? = appLockPrefs.getString(KEY_PASSWORD, null)
     fun validatePassword(inputPassword: String): Boolean {
         val stored = getPassword()
-        return stored != null && inputPassword == stored
+        if (CredentialHasher.verify(inputPassword, stored)) return true
+        if (stored != null && !CredentialHasher.isHash(stored) && inputPassword == stored) {
+            setPassword(inputPassword)
+            return true
+        }
+        return false
     }
 
-    fun setPattern(pattern: String) { appLockPrefs.edit { putString(KEY_PATTERN, pattern) } }
+    fun setPattern(pattern: String) {
+        appLockPrefs.edit { putString(KEY_PATTERN, CredentialHasher.hash(pattern)) }
+    }
     fun getPattern(): String? = appLockPrefs.getString(KEY_PATTERN, null)
     fun validatePattern(inputPattern: String): Boolean {
         val stored = getPattern()
-        return stored != null && inputPattern == stored
+        if (CredentialHasher.verify(inputPattern, stored)) return true
+        if (stored != null && !CredentialHasher.isHash(stored) && inputPattern == stored) {
+            setPattern(inputPattern)
+            return true
+        }
+        return false
     }
 
     fun setLockType(lockType: String) { settingsPrefs.edit { putString(KEY_LOCK_TYPE, lockType) } }

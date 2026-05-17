@@ -350,7 +350,7 @@ class AppLockAccessibilityService : AccessibilityService() {
             BackendImplementation.ACCESSIBILITY -> true
             BackendImplementation.USAGE_STATS -> !applicationContext.isServiceRunning(
                 ExperimentalAppLockService::class.java
-            )
+            ).also { if (it) AppLockManager.updateState(AppLockManager.LockState.MONITORING) }
         }
     }
 
@@ -391,7 +391,10 @@ class AppLockAccessibilityService : AccessibilityService() {
 
     private fun showLockScreenOverlay(packageName: String, triggeringPackage: String) {
         LogUtils.d(TAG, "Locked app detected: $packageName. Showing overlay with instant privacy protection.")
-        AppLockManager.isLockScreenShown.set(true)
+        if (!AppLockManager.beginLock(packageName)) {
+            LogUtils.d(TAG, "Lock overlay already active or recently requested for $packageName")
+            return
+        }
 
         // PRIVACY FIX: Launch lock screen with highest priority flags to minimize content exposure
         val intent = Intent(this, PasswordOverlayActivity::class.java).apply {
@@ -410,7 +413,7 @@ class AppLockAccessibilityService : AccessibilityService() {
             startActivity(intent)
         } catch (e: Exception) {
             logError("Failed to start password overlay", e)
-            AppLockManager.isLockScreenShown.set(false)
+            AppLockManager.markLockDismissedWithoutUnlock()
         }
     }
 
