@@ -29,6 +29,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
+import androidx.core.content.ContextCompat
 import androidx.navigation.NavController
 import com.itisuniqueofficial.lockify.R
 import com.itisuniqueofficial.lockify.core.broadcast.DeviceAdmin
@@ -784,7 +785,8 @@ fun BackendSelectionCard(
                                     }
                                     selectedBackend = backend
                                     appLockRepository.setBackendImplementation(BackendImplementation.USAGE_STATS)
-                                    context.startService(
+                                    ContextCompat.startForegroundService(
+                                        context,
                                         Intent(context, ExperimentalAppLockService::class.java)
                                     )
                                 }

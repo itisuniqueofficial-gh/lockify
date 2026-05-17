@@ -172,7 +172,7 @@ class ExperimentalAppLockService : Service() {
             } catch (e: Exception) {
                 Log.e(TAG, "Monitoring tick failed", e)
             }
-        }, 0, 100)
+        }, 0, 250)
     }
 
     private fun isExclusionApp(packageName: String): Boolean {

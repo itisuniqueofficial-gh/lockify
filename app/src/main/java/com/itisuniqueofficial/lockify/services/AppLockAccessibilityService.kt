@@ -15,6 +15,7 @@ import android.view.accessibility.AccessibilityWindowInfo
 import android.view.accessibility.AccessibilityEvent
 import android.view.inputmethod.InputMethodManager
 import android.widget.Toast
+import androidx.core.content.ContextCompat
 import androidx.core.content.getSystemService
 import com.itisuniqueofficial.lockify.core.broadcast.DeviceAdmin
 import com.itisuniqueofficial.lockify.core.utils.LogUtils
@@ -648,7 +649,10 @@ class AppLockAccessibilityService : AccessibilityService() {
             when (appLockRepository.getBackendImplementation()) {
                 BackendImplementation.USAGE_STATS -> {
                     LogUtils.d(TAG, "Starting Usage Stats service as primary backend")
-                    startService(Intent(this, ExperimentalAppLockService::class.java))
+                    ContextCompat.startForegroundService(
+                        this,
+                        Intent(this, ExperimentalAppLockService::class.java)
+                    )
                 }
                 else -> {
                     LogUtils.d(TAG, "Accessibility service is the primary backend.")

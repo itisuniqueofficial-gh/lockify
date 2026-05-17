@@ -4,6 +4,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.util.Log
+import androidx.core.content.ContextCompat
 import com.itisuniqueofficial.lockify.core.utils.LogUtils
 import com.itisuniqueofficial.lockify.core.utils.appLockRepository
 import com.itisuniqueofficial.lockify.data.repository.BackendImplementation
@@ -17,6 +18,11 @@ class BootReceiver : BroadcastReceiver() {
         when (intent.action) {
             Intent.ACTION_MY_PACKAGE_REPLACED -> {
                 LogUtils.clearAllLogs()
+                try {
+                    startAppropriateServices(context, repository)
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error starting services after app update", e)
+                }
             }
             Intent.ACTION_BOOT_COMPLETED -> {
                 try {
@@ -48,7 +54,7 @@ class BootReceiver : BroadcastReceiver() {
 
     private fun startService(context: Context, serviceClass: Class<*>) {
         try {
-            context.startService(Intent(context, serviceClass))
+            ContextCompat.startForegroundService(context, Intent(context, serviceClass))
         } catch (e: Exception) {
             Log.e(TAG, "Failed to start service: ${serviceClass.simpleName}", e)
         }

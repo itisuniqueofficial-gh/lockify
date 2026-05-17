@@ -31,6 +31,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.app.NotificationManagerCompat
+import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import androidx.navigation.NavController
 import dev.pranav.appintro.AppIntro
@@ -359,7 +360,8 @@ fun AppIntroScreen(navController: NavController) {
                     } else {
                         context.appLockRepository()
                             .setBackendImplementation(BackendImplementation.USAGE_STATS)
-                        context.startService(
+                        ContextCompat.startForegroundService(
+                            context,
                             Intent(context, ExperimentalAppLockService::class.java)
                         )
                         true

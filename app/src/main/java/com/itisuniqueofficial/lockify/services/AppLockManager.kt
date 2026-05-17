@@ -239,7 +239,10 @@ object AppLockManager {
             if (!shouldAttemptRestart(serviceName)) return
             try {
                 LogUtils.d(TAG, "Attempting to restart ExperimentalAppLockService.")
-                context.startService(Intent(context, ExperimentalAppLockService::class.java))
+                androidx.core.content.ContextCompat.startForegroundService(
+                    context,
+                    Intent(context, ExperimentalAppLockService::class.java)
+                )
                 recordRestartAttempt(serviceName)
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to restart ExperimentalAppLockService", e)

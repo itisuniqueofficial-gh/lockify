@@ -88,7 +88,6 @@ Make sure you have Shizuku installed and enabled via ADB. Tap \'Next\' to grant 
     <string name="re_enter_new_pin_confirm_label">Re-enter your new PIN to confirm</string>
     <string name="reset_using_device_password_button">Reset using device password</string>
     <string name="cancel_button">Cancel</string>
-    <string name="close_button">Close</string>
     <string name="start_over_button">Start Over</string>
     <string name="password_set_successfully_toast">Password set successfully</string>
     <string name="use_pattern_button">Use Pattern</string>

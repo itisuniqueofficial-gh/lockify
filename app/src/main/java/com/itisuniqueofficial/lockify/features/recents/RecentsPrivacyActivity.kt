@@ -3,6 +3,7 @@ package com.itisuniqueofficial.lockify.features.recents
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.addCallback
@@ -48,6 +49,7 @@ import com.itisuniqueofficial.lockify.ui.theme.AppLockTheme
  *     launches the lock screen, then finishes itself.
  */
 class RecentsPrivacyActivity : ComponentActivity() {
+    private val tag = "RecentsPrivacyActivity"
 
     private var lockedPackage: String? = null
 
@@ -80,7 +82,7 @@ class RecentsPrivacyActivity : ComponentActivity() {
         AppLockManager.clearTemporarilyUnlockedApp()
         AppLockManager.appUnlockTimes.remove(pkg)
 
-        if (!AppLockManager.isLockScreenShown.get()) {
+        if (!AppLockManager.isLockScreenShown.get() && AppLockManager.beginLock(pkg)) {
             showLockScreen(pkg)
         }
     }
@@ -94,7 +96,12 @@ class RecentsPrivacyActivity : ComponentActivity() {
             putExtra("locked_package", packageName)
             putExtra("triggering_package", packageName)
         }
-        startActivity(intent)
+        try {
+            startActivity(intent)
+        } catch (e: Exception) {
+            Log.e(tag, "Failed to launch lock screen for $packageName", e)
+            AppLockManager.markLockDismissedWithoutUnlock()
+        }
         // Don't finish — keep this activity alive so the recents card stays as the placeholder.
         // The lock screen sits on top; when auth succeeds the overlay finishes and the real
         // app is revealed (or the user navigates away).
