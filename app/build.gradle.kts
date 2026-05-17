@@ -5,6 +5,10 @@ plugins {
     alias(libs.plugins.kotlin.compose)
 }
 
+fun signingValue(name: String): String? {
+    return providers.gradleProperty(name).orNull ?: System.getenv(name)
+}
+
 android {
     namespace = "com.itisuniqueofficial.lockify"
     compileSdk = 36
@@ -21,13 +25,13 @@ android {
 
     signingConfigs {
         create("release") {
-            val keystorePath = System.getenv("KEYSTORE_FILE")
+            val keystorePath = signingValue("KEYSTORE_FILE")
             if (!keystorePath.isNullOrBlank()) {
                 storeFile = file(keystorePath)
             }
-            storePassword = System.getenv("KEYSTORE_PASSWORD")
-            keyAlias = System.getenv("KEY_ALIAS")
-            keyPassword = System.getenv("KEY_PASSWORD")
+            storePassword = signingValue("KEYSTORE_PASSWORD")
+            keyAlias = signingValue("KEY_ALIAS")
+            keyPassword = signingValue("KEY_PASSWORD")
         }
     }
 
