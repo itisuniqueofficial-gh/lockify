@@ -5,6 +5,7 @@ import android.content.Context
 import android.os.Build
 import android.util.Log
 import com.itisuniqueofficial.lockify.core.utils.LogUtils
+import com.itisuniqueofficial.lockify.core.workers.ProtectionHealthWorker
 import com.itisuniqueofficial.lockify.data.repository.AppLockRepository
 import org.lsposed.hiddenapibypass.HiddenApiBypass
 
@@ -31,6 +32,7 @@ class AppLockApplication : Application() {
         LogUtils.setLoggingEnabled(appLockRepository.isLoggingEnabled())
         // purgeOldLogs already spawns its own daemon thread internally
         LogUtils.purgeOldLogs()
+        ProtectionHealthWorker.schedule(this)
     }
 
     companion object {

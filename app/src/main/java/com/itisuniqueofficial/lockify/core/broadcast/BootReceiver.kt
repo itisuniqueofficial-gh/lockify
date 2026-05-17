@@ -5,8 +5,10 @@ import android.content.Context
 import android.content.Intent
 import android.util.Log
 import androidx.core.content.ContextCompat
+import com.itisuniqueofficial.lockify.core.protection.ProtectionStateStore
 import com.itisuniqueofficial.lockify.core.utils.LogUtils
 import com.itisuniqueofficial.lockify.core.utils.appLockRepository
+import com.itisuniqueofficial.lockify.core.workers.ProtectionHealthWorker
 import com.itisuniqueofficial.lockify.data.repository.BackendImplementation
 import com.itisuniqueofficial.lockify.services.ExperimentalAppLockService
 
@@ -18,6 +20,8 @@ class BootReceiver : BroadcastReceiver() {
         when (intent.action) {
             Intent.ACTION_MY_PACKAGE_REPLACED -> {
                 LogUtils.clearAllLogs()
+                ProtectionStateStore.validateAllPermissions(context)
+                ProtectionHealthWorker.schedule(context)
                 try {
                     startAppropriateServices(context, repository)
                 } catch (e: Exception) {
@@ -25,11 +29,18 @@ class BootReceiver : BroadcastReceiver() {
                 }
             }
             Intent.ACTION_BOOT_COMPLETED -> {
+                ProtectionStateStore.markRebootedAndRelock(context)
+                ProtectionHealthWorker.schedule(context)
                 try {
                     startAppropriateServices(context, repository)
                 } catch (e: Exception) {
                     Log.e(TAG, "Error starting services on boot", e)
                 }
+            }
+            ACTION_QUICKBOOT_POWERON,
+            ACTION_HTC_QUICKBOOT_POWERON -> {
+                ProtectionStateStore.markRebootedAndRelock(context)
+                ProtectionHealthWorker.schedule(context)
             }
         }
     }
@@ -62,5 +73,7 @@ class BootReceiver : BroadcastReceiver() {
 
     companion object {
         private const val TAG = "BootReceiver"
+        private const val ACTION_QUICKBOOT_POWERON = "android.intent.action.QUICKBOOT_POWERON"
+        private const val ACTION_HTC_QUICKBOOT_POWERON = "com.htc.intent.action.QUICKBOOT_POWERON"
     }
 }

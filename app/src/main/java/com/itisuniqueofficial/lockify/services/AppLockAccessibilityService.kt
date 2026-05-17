@@ -18,8 +18,10 @@ import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.core.content.getSystemService
 import com.itisuniqueofficial.lockify.core.broadcast.DeviceAdmin
+import com.itisuniqueofficial.lockify.core.protection.ProtectionStateStore
 import com.itisuniqueofficial.lockify.core.utils.LogUtils
 import com.itisuniqueofficial.lockify.core.utils.appLockRepository
+import com.itisuniqueofficial.lockify.core.workers.ProtectionHealthWorker
 import com.itisuniqueofficial.lockify.data.repository.AppLockRepository
 import com.itisuniqueofficial.lockify.data.repository.BackendImplementation
 import com.itisuniqueofficial.lockify.features.lockscreen.ui.PasswordOverlayActivity
@@ -116,6 +118,9 @@ class AppLockAccessibilityService : AccessibilityService() {
             LogUtils.d(TAG, "Accessibility service connected")
             AppLockManager.resetRestartAttempts(TAG)
             appLockRepository.setActiveBackend(BackendImplementation.ACCESSIBILITY)
+            AppLockManager.clearAllUnlockState()
+            ProtectionStateStore.markActive(this)
+            ProtectionHealthWorker.schedule(this)
         } catch (e: Exception) {
             logError("Error in onServiceConnected", e)
         }
@@ -666,6 +671,7 @@ class AppLockAccessibilityService : AccessibilityService() {
     override fun onInterrupt() {
         try {
             LogUtils.d(TAG, "Accessibility service interrupted")
+            ProtectionStateStore.markUnsafe(this, "accessibility_interrupted")
         } catch (e: Exception) {
             logError("Error in onInterrupt", e)
         }
@@ -675,6 +681,7 @@ class AppLockAccessibilityService : AccessibilityService() {
         return try {
             LogUtils.d(TAG, "Accessibility service unbound")
             isServiceRunning = false
+            ProtectionStateStore.markUnsafe(this, "accessibility_unbound")
             // Accessibility service is system-managed — we cannot restart it.
             // If usage stats backend is configured, start it as fallback.
             if (appLockRepository.getBackendImplementation() == BackendImplementation.USAGE_STATS) {
