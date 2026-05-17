@@ -51,7 +51,6 @@ import com.itisuniqueofficial.lockify.core.utils.isAccessibilityServiceEnabled
 import com.itisuniqueofficial.lockify.core.utils.openAccessibilitySettings
 import com.itisuniqueofficial.lockify.data.repository.BackendImplementation
 import com.itisuniqueofficial.lockify.ui.components.AccessibilityDisclosureDialog
-import com.itisuniqueofficial.lockify.ui.components.DonateModalBottomSheet
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -143,11 +142,6 @@ fun MainScreen(
                 )
             }
         )
-    }
-
-    var showDonateDialog by remember { mutableStateOf(appLockRepository.isShowDonateLink()) }
-    if (showDonateDialog && !showCommunityLink) {
-        DonateModalBottomSheet { showDonateDialog = false }
     }
 
     Scaffold(

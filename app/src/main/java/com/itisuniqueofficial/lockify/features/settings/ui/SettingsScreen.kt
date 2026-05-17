@@ -60,7 +60,6 @@ fun SettingsScreen(
     val context = LocalContext.current
     val appLockRepository = remember { context.appLockRepository() }
 
-    var showDialog by remember { mutableStateOf(false) }
     var showUnlockTimeDialog by remember { mutableStateOf(false) }
 
     var autoUnlock by remember { mutableStateOf(appLockRepository.isAutoUnlockEnabled()) }
@@ -120,35 +119,6 @@ fun SettingsScreen(
             BiometricManager.Authenticators.BIOMETRIC_WEAK or
                     BiometricManager.Authenticators.BIOMETRIC_STRONG
         ) == BiometricManager.BIOMETRIC_SUCCESS
-    }
-
-    if (showDialog) {
-        AlertDialog(
-            onDismissRequest = { showDialog = false },
-            title = { Text(stringResource(R.string.settings_screen_support_development_dialog_title)) },
-            text = { Text(stringResource(R.string.support_development_text)) },
-            confirmButton = {
-                FilledTonalButton(
-                    onClick = {
-                        context.startActivity(
-                            Intent(
-                                Intent.ACTION_VIEW,
-                                "https://www.instagram.com/jayadtt_khodave".toUri()
-                            )
-                        )
-                        showDialog = false
-                    }
-                ) {
-                    Text(stringResource(R.string.settings_screen_support_development_donate_button))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDialog = false }) {
-                    Text(stringResource(R.string.cancel_button))
-                }
-            },
-            containerColor = MaterialTheme.colorScheme.surface
-        )
     }
 
     if (showUnlockTimeDialog) {

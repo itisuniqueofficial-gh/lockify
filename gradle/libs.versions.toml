@@ -1,18 +1,18 @@
 [versions]
-agp = "9.1.0"
-annotation = "1.9.1"
+agp = "9.1.1"
+annotation = "1.10.0"
 refine = "4.4.0"
 hiddenapibypass = "6.1"
 biometric = "1.4.0-alpha02"
 fragmentKtx = "1.8.9"
-kotlin = "2.3.10"
-coreKtx = "1.17.0"
+kotlin = "2.3.21"
+coreKtx = "1.18.0"
 lifecycleRuntimeKtx = "2.10.0"
-activityCompose = "1.12.4"
-composeBom = "2026.02.00"
-material3 = "1.5.0-alpha14"
+activityCompose = "1.13.0"
+composeBom = "2026.02.01"
+material3 = "1.5.0-alpha18"
 materialIconsCore = "1.7.8"
-navigationCompose = "2.9.7"
+navigationCompose = "2.9.8"
 
 [libraries]
 androidx-activity-ktx = { module = "androidx.activity:activity-ktx", version.ref = "activityCompose" }

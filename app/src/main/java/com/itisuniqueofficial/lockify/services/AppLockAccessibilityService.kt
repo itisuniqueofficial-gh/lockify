@@ -11,6 +11,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.pm.ResolveInfo
 import android.util.Log
+import android.view.accessibility.AccessibilityWindowInfo
 import android.view.accessibility.AccessibilityEvent
 import android.view.inputmethod.InputMethodManager
 import android.widget.Toast
@@ -40,6 +41,7 @@ class AppLockAccessibilityService : AccessibilityService() {
 
     private var recentsOpen = false
     private var lastForegroundPackage = ""
+    private var screenReceiverRegistered = false
 
     enum class BiometricState {
         IDLE, AUTH_STARTED
@@ -92,6 +94,7 @@ class AppLockAccessibilityService : AccessibilityService() {
                 addAction(Intent.ACTION_USER_PRESENT)
             }
             registerReceiver(screenStateReceiver, filter)
+            screenReceiverRegistered = true
         } catch (e: Exception) {
             logError("Error in onCreate", e)
         }
@@ -157,6 +160,10 @@ class AppLockAccessibilityService : AccessibilityService() {
                 logError("Error handling window state change", e)
                 return
             }
+        }
+
+        if (!recentsOpen && event.eventType == AccessibilityEvent.TYPE_WINDOWS_CHANGED) {
+            processVisibleLockedWindow()?.let { return }
         }
 
         if (recentsOpen) return
@@ -301,6 +308,41 @@ class AppLockAccessibilityService : AccessibilityService() {
         }
 
         checkAndLockApp(currentForegroundPackage, triggeringPackage, System.currentTimeMillis())
+    }
+
+    private fun processVisibleLockedWindow(): String? {
+        val packageName = findLockedPackageInVisibleWindows() ?: return null
+        if (!isValidPackageForLocking(packageName)) return null
+        if (AppLockManager.isAppTemporarilyUnlocked(packageName)) return null
+
+        val unlockDurationMinutes = appLockRepository.getUnlockTimeDuration()
+        val unlockTimestamp = AppLockManager.appUnlockTimes[packageName] ?: 0L
+        if (unlockDurationMinutes > 0 && unlockTimestamp > 0) {
+            if (unlockDurationMinutes >= AppLockManager.UNLOCK_DURATION_UNTIL_SCREEN_OFF) return null
+            val elapsedMillis = System.currentTimeMillis() - unlockTimestamp
+            if (elapsedMillis < unlockDurationMinutes.toLong() * 60L * 1000L) return null
+            AppLockManager.appUnlockTimes.remove(packageName)
+        }
+
+        lastForegroundPackage = packageName
+        showLockScreenOverlay(packageName, "visible_window")
+        return packageName
+    }
+
+    private fun findLockedPackageInVisibleWindows(): String? {
+        return try {
+            val lockedApps = appLockRepository.getLockedApps()
+            if (lockedApps.isEmpty()) return null
+
+            windows
+                .asSequence()
+                .filter { window -> window.type == AccessibilityWindowInfo.TYPE_APPLICATION }
+                .mapNotNull { window -> window.root?.packageName?.toString() }
+                .firstOrNull { packageName -> packageName in lockedApps }
+        } catch (e: Exception) {
+            logError("Error scanning visible accessibility windows", e)
+            null
+        }
     }
 
     private fun shouldAccessibilityHandleLocking(): Boolean {
@@ -643,10 +685,14 @@ class AppLockAccessibilityService : AccessibilityService() {
             super.onDestroy()
             isServiceRunning = false
             LogUtils.d(TAG, "Accessibility service destroyed")
-            try {
-                unregisterReceiver(screenStateReceiver)
-            } catch (_: IllegalArgumentException) {
-                // already unregistered
+            if (screenReceiverRegistered) {
+                try {
+                    unregisterReceiver(screenStateReceiver)
+                } catch (_: IllegalArgumentException) {
+                    // already unregistered
+                } finally {
+                    screenReceiverRegistered = false
+                }
             }
             AppLockManager.isLockScreenShown.set(false)
         } catch (e: Exception) {

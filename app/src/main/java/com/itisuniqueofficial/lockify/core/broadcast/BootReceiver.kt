@@ -16,7 +16,6 @@ class BootReceiver : BroadcastReceiver() {
 
         when (intent.action) {
             Intent.ACTION_MY_PACKAGE_REPLACED -> {
-                repository.setShowDonateLink(true)
                 LogUtils.clearAllLogs()
             }
             Intent.ACTION_BOOT_COMPLETED -> {

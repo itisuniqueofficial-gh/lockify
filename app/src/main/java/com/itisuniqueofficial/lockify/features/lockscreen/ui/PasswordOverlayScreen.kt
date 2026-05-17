@@ -27,6 +27,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -91,7 +92,7 @@ class PasswordOverlayActivity : FragmentActivity() {
         appLockRepository = AppLockRepository(applicationContext)
 
         onBackPressedDispatcher.addCallback(this) {
-            // Prevent back navigation to maintain security
+            dismissOverlayFromBackPress()
         }
 
         setupWindow()
@@ -153,6 +154,12 @@ class PasswordOverlayActivity : FragmentActivity() {
 
         // Apply privacy protection through manager
         com.itisuniqueofficial.lockify.services.PrivacyProtectionManager.secureActivity(this)
+    }
+
+    private fun dismissOverlayFromBackPress() {
+        AppLockManager.isLockScreenShown.set(false)
+        AppLockManager.reportBiometricAuthFinished()
+        finish()
     }
 
     private fun loadAppNameAsync() {
@@ -243,6 +250,7 @@ class PasswordOverlayActivity : FragmentActivity() {
                                 lockedAppName = currentAppName,
                                 triggeringPackageName = triggeringPackageNameFromIntent,
                                 onPatternAttempt = onPatternAttemptCallback,
+                                onClose = { dismissOverlayFromBackPress() },
                                 onForgotPassword = onForgotPasswordCallback
                             )
                         }
@@ -257,6 +265,7 @@ class PasswordOverlayActivity : FragmentActivity() {
                                 lockedAppName = currentAppName,
                                 triggeringPackageName = triggeringPackageNameFromIntent,
                                 onPinAttempt = onPinAttemptCallback,
+                                onClose = { dismissOverlayFromBackPress() },
                                 onForgotPassword = onForgotPasswordCallback
                             )
                         }
@@ -390,6 +399,7 @@ fun PasswordOverlayScreen(
     lockedAppName: String? = null,
     triggeringPackageName: String? = null,
     onPinAttempt: ((pin: String) -> Boolean)? = null,
+    onClose: (() -> Unit)? = null,
     onForgotPassword: (() -> Unit)? = null
 ) {
     val appLockRepository = LocalContext.current.appLockRepository()
@@ -410,14 +420,15 @@ fun PasswordOverlayScreen(
         var showError by remember { mutableStateOf(false) }
         val minLength = 4
 
-        if (isLandscape) {
-            Row(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 16.dp, vertical = 16.dp),
-                horizontalArrangement = Arrangement.SpaceEvenly,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            if (isLandscape) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 16.dp, vertical = 16.dp),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                 Column(
                     modifier = Modifier
                         .weight(1f)
@@ -495,15 +506,15 @@ fun PasswordOverlayScreen(
                         onPinIncorrect = { showError = true }
                     )
                 }
-            }
-        } else {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(vertical = if (fromMainActivity) 24.dp else 12.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(24.dp)
-            ) {
+                }
+            } else {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(vertical = if (fromMainActivity) 24.dp else 12.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(24.dp)
+                ) {
                 // Dynamic spacer for small screens
                 val topSpacerHeight = if (screenHeightDp < 600.dp) 12.dp else 48.dp
                 Spacer(modifier = Modifier.height(topSpacerHeight))
@@ -575,6 +586,22 @@ fun PasswordOverlayScreen(
                     },
                     onPinIncorrect = { showError = true }
                 )
+                }
+            }
+
+            if (!fromMainActivity && onClose != null) {
+                IconButton(
+                    onClick = onClose,
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .statusBarsPadding()
+                        .padding(top = 8.dp, end = 8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.Close,
+                        contentDescription = stringResource(R.string.close_button)
+                    )
+                }
             }
         }
     }

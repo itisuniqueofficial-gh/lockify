@@ -1,6 +1,5 @@
 package com.mrhwsn.composelock
 
-import android.util.Range
 import android.view.MotionEvent
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
@@ -15,6 +14,7 @@ import androidx.compose.ui.input.pointer.pointerInteropFilter
 import androidx.compose.ui.tooling.preview.Preview
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlin.math.abs
 
 interface LockCallback {
     fun onStart(dot: Dot)
@@ -37,8 +37,9 @@ fun PatternLock(
     callback: LockCallback
 ) {
     val scope = rememberCoroutineScope()
-    val dotsList = remember {
-        mutableListOf<Dot>()
+    var canvasSize by remember { mutableStateOf(Offset.Zero) }
+    val dotsList = remember(dimension, dotsSize, canvasSize) {
+        buildDots(dimension, dotsSize, canvasSize)
     }
     val previewLine = remember {
         mutableStateOf<Line?>(null)
@@ -49,109 +50,82 @@ fun PatternLock(
     val connectedDots = remember {
         mutableStateListOf<Dot>()
     }
+    val connectedDotIds = remember { mutableStateSetOf<Int>() }
+
+    fun animateDot(dot: Dot) {
+        scope.launch {
+            dot.size.animateTo(dotsSize * 1.8f, tween(animationDuration))
+            delay(animationDelay)
+            dot.size.animateTo(dotsSize, tween(animationDuration))
+        }
+    }
+
+    fun connectDot(dot: Dot) {
+        if (!connectedDotIds.add(dot.id)) return
+        val previousDot = connectedDots.lastOrNull()
+        if (previousDot == null) {
+            callback.onStart(dot)
+            previewLine.value = Line(start = dot.offset, end = dot.offset)
+        } else {
+            connectedLines.add(Line(start = previousDot.offset, end = dot.offset))
+            callback.onDotConnected(dot)
+            previewLine.value = Line(start = dot.offset, end = dot.offset)
+        }
+        connectedDots.add(dot)
+        animateDot(dot)
+    }
+
+    fun connectDotWithSkippedDots(dot: Dot) {
+        val previousDot = connectedDots.lastOrNull()
+        if (previousDot != null) {
+            findSkippedDot(previousDot, dot, dotsList, connectedDotIds)?.let { connectDot(it) }
+        }
+        connectDot(dot)
+    }
 
     Canvas(
         modifier.pointerInteropFilter {
             when (it.action) {
                 MotionEvent.ACTION_DOWN -> {
-                    for (dots in dotsList) {
-                        if (
-                            it.x in Range(
-                                dots.offset.x - sensitivity,
-                                dots.offset.x + sensitivity
-                            ) &&
-                            it.y in Range(dots.offset.y - sensitivity, dots.offset.y + sensitivity)
-                        ) {
-                            connectedDots.add(dots)
-                            callback.onStart(dots)
-                            scope.launch {
-                                dots.size.animateTo(
-                                    (dotsSize * 1.8).toFloat(),
-                                    tween(animationDuration)
-                                )
-                                delay(animationDelay)
-                                dots.size.animateTo(dotsSize, tween(animationDuration))
-                            }
-                            previewLine.value = Line(start = dots.offset, end = dots.offset)
-                        }
-                    }
+                    connectedLines.clear()
+                    connectedDots.clear()
+                    connectedDotIds.clear()
+                    dotsList.firstOrNull { dot -> dot.hitTest(it.x, it.y, sensitivity) }
+                        ?.let { dot -> connectDot(dot) }
                 }
 
 
                 MotionEvent.ACTION_MOVE -> {
-                    if (previewLine.value != null) {
-                        previewLine.value = previewLine.value!!.copy(end = Offset(it.x, it.y))
+                    previewLine.value?.let { line ->
+                        previewLine.value = line.copy(end = Offset(it.x, it.y))
                     }
-                    for (dots in dotsList) {
-                        if (!connectedDots.contains(dots)) {
-                            if (
-                                it.x in Range(
-                                    dots.offset.x - sensitivity,
-                                    dots.offset.x + sensitivity
-                                ) &&
-                                it.y in Range(
-                                    dots.offset.y - sensitivity,
-                                    dots.offset.y + sensitivity
-                                )
-                            ) {
-                                if (previewLine.value != null)
-                                    connectedLines.add(
-                                        Line(
-                                            start = previewLine.value!!.start,
-                                            end = dots.offset
-                                        )
-                                    )
-                                connectedDots.add(dots)
-                                callback.onDotConnected(dots)
-                                scope.launch {
-                                    dots.size.animateTo(
-                                        (dotsSize * 1.8).toFloat(),
-                                    )
-                                    delay(animationDelay)
-                                    dots.size.animateTo(dotsSize, tween(animationDuration))
-                                }
-                                if (previewLine.value != null)
-                                    previewLine.value =
-                                        previewLine.value!!.copy(start = dots.offset)
-                            }
-                        }
-                    }
+                    dotsList.firstOrNull { dot ->
+                        dot.id !in connectedDotIds && dot.hitTest(it.x, it.y, sensitivity)
+                    }?.let { dot -> connectDotWithSkippedDots(dot) }
                 }
 
-                MotionEvent.ACTION_UP -> {
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                     previewLine.value = null
                     callback.onResult(connectedDots.toList())
                     connectedLines.clear()
                     connectedDots.clear()
+                    connectedDotIds.clear()
                 }
             }
             true
         }) {
-        val realDimension = dimension + 1
-        val spaceBetweenWidthDots = size.width / realDimension
-        val spaceBetweenHeightDots = size.height / realDimension
-        val dotsOnWidth = arrayOfNulls<Int>(realDimension * realDimension)
-        val dotsOnHeight = arrayOfNulls<Int>(realDimension * realDimension)
-        dotsOnWidth.forEachIndexed { widthIndex, _ ->
-            val readWidthIndex = widthIndex + 1
-            dotsOnHeight.forEachIndexed { heightIndex, _ ->
-                val readHeightIndex = heightIndex + 1
-                if (readWidthIndex < realDimension && readHeightIndex < realDimension) {
-                    if (dotsList.count() < dimension * dimension) {
-                        val dotOffset = Offset(
-                            (spaceBetweenWidthDots * readWidthIndex),
-                            (spaceBetweenHeightDots * readHeightIndex)
-                        )
-                        dotsList.add(
-                            Dot(
-                                dotsList.size + 1,
-                                dotOffset,
-                                Animatable(dotsSize)
-                            )
-                        )
-                    }
-                }
-            }
+        val currentSize = Offset(size.width, size.height)
+        if (canvasSize != currentSize) {
+            canvasSize = currentSize
+        }
+        for (line in connectedLines) {
+            drawLine(
+                color = linesColor,
+                start = line.start,
+                end = line.end,
+                strokeWidth = linesStroke,
+                cap = StrokeCap.Round
+            )
         }
         if (previewLine.value != null) {
             drawLine(
@@ -169,17 +143,60 @@ fun PatternLock(
                 center = dots.offset
             )
         }
-        for (line in connectedLines) {
-            drawLine(
-                color = linesColor,
-                start = line.start,
-                end = line.end,
-                strokeWidth = linesStroke,
-                cap = StrokeCap.Round
-            )
-        }
 
     }
+}
+
+private fun buildDots(dimension: Int, dotsSize: Float, canvasSize: Offset): List<Dot> {
+    if (dimension <= 0 || canvasSize == Offset.Zero) return emptyList()
+
+    val realDimension = dimension + 1
+    val spaceBetweenWidthDots = canvasSize.x / realDimension
+    val spaceBetweenHeightDots = canvasSize.y / realDimension
+    return buildList(dimension * dimension) {
+        for (y in 1..dimension) {
+            for (x in 1..dimension) {
+                add(
+                    Dot(
+                        id = size + 1,
+                        offset = Offset(spaceBetweenWidthDots * x, spaceBetweenHeightDots * y),
+                        size = Animatable(dotsSize)
+                    )
+                )
+            }
+        }
+    }
+}
+
+private fun Dot.hitTest(x: Float, y: Float, sensitivity: Float): Boolean {
+    return abs(x - offset.x) <= sensitivity && abs(y - offset.y) <= sensitivity
+}
+
+private fun findSkippedDot(
+    start: Dot,
+    end: Dot,
+    dots: List<Dot>,
+    connectedDotIds: Set<Int>
+): Dot? {
+    val startIndex = start.id - 1
+    val endIndex = end.id - 1
+    val dimension = kotlin.math.sqrt(dots.size.toDouble()).toInt()
+    if (dimension <= 0) return null
+
+    val startRow = startIndex / dimension
+    val startCol = startIndex % dimension
+    val endRow = endIndex / dimension
+    val endCol = endIndex % dimension
+    val rowDiff = endRow - startRow
+    val colDiff = endCol - startCol
+
+    if (abs(rowDiff) != 2 && abs(colDiff) != 2) return null
+    if (!(rowDiff == 0 || colDiff == 0 || abs(rowDiff) == abs(colDiff))) return null
+
+    val middleRow = startRow + rowDiff / 2
+    val middleCol = startCol + colDiff / 2
+    val middleId = middleRow * dimension + middleCol + 1
+    return dots.firstOrNull { it.id == middleId && it.id !in connectedDotIds }
 }
 
 @Preview

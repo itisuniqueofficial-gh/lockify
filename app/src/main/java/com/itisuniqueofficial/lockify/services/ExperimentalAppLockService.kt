@@ -41,6 +41,7 @@ class ExperimentalAppLockService : Service() {
 
     private var timer: Timer? = null
     private var previousForegroundPackage = ""
+    private var screenReceiverRegistered = false
 
     // Cache keyboard packages to avoid querying InputMethodManager on every 100ms tick
     private var keyboardPackages: List<String> = emptyList()
@@ -82,11 +83,18 @@ class ExperimentalAppLockService : Service() {
         AppLockManager.stopAllOtherServices(this, this::class.java)
         AppLockManager.isLockScreenShown.set(false)
 
-        val filter = android.content.IntentFilter().apply {
-            addAction(Intent.ACTION_SCREEN_OFF)
-            addAction(Intent.ACTION_USER_PRESENT)
+        if (!screenReceiverRegistered) {
+            val filter = android.content.IntentFilter().apply {
+                addAction(Intent.ACTION_SCREEN_OFF)
+                addAction(Intent.ACTION_USER_PRESENT)
+            }
+            runCatching {
+                registerReceiver(screenStateReceiver, filter)
+                screenReceiverRegistered = true
+            }.onFailure { e ->
+                Log.e(TAG, "Unable to register screen state receiver", e)
+            }
         }
-        registerReceiver(screenStateReceiver, filter)
 
         startMonitoringTimer()
         startForegroundService()
@@ -98,10 +106,14 @@ class ExperimentalAppLockService : Service() {
         timer?.cancel()
         LogUtils.d(TAG, "ExperimentalAppLockService destroyed.")
 
-        try {
-            unregisterReceiver(screenStateReceiver)
-        } catch (e: IllegalArgumentException) {
-            Log.w(TAG, "Receiver not registered or already unregistered")
+        if (screenReceiverRegistered) {
+            try {
+                unregisterReceiver(screenStateReceiver)
+            } catch (e: IllegalArgumentException) {
+                Log.w(TAG, "Receiver not registered or already unregistered")
+            } finally {
+                screenReceiverRegistered = false
+            }
         }
 
         AppLockManager.isLockScreenShown.set(false)
@@ -117,45 +129,49 @@ class ExperimentalAppLockService : Service() {
         timer?.cancel()
         timer = Timer()
         timer?.schedule(timerTask {
-            if (!appLockRepository.isProtectEnabled() || applicationContext.isDeviceLocked()) {
-                if (applicationContext.isDeviceLocked()) {
-                    // PRIVACY FIX: Clear all unlock state when device is locked
-                    AppLockManager.clearAllUnlockState()
-                    previousForegroundPackage = ""
+            try {
+                if (!appLockRepository.isProtectEnabled() || applicationContext.isDeviceLocked()) {
+                    if (applicationContext.isDeviceLocked()) {
+                        // PRIVACY FIX: Clear all unlock state when device is locked
+                        AppLockManager.clearAllUnlockState()
+                        previousForegroundPackage = ""
+                    }
+                    return@timerTask
                 }
-                return@timerTask
-            }
 
-            val foregroundApp = getCurrentForegroundAppPackage() ?: return@timerTask
-            val currentPackage = foregroundApp.first
-            val triggeringPackage = previousForegroundPackage
-            previousForegroundPackage = currentPackage
+                val foregroundApp = getCurrentForegroundAppPackage() ?: return@timerTask
+                val currentPackage = foregroundApp.first
+                val triggeringPackage = previousForegroundPackage
+                previousForegroundPackage = currentPackage
 
-            if (isExclusionApp(currentPackage)) return@timerTask
+                if (isExclusionApp(currentPackage)) return@timerTask
 
-            if (triggeringPackage in appLockRepository.getTriggerExcludedApps()) {
-                return@timerTask
-            }
+                if (triggeringPackage in appLockRepository.getTriggerExcludedApps()) {
+                    return@timerTask
+                }
 
-            if (currentPackage == triggeringPackage) return@timerTask
+                if (currentPackage == triggeringPackage) return@timerTask
 
-            // When a protected app leaves the foreground and lock-on-minimize is enabled,
-            // launch the recents privacy placeholder so the system snapshots it instead of
-            // the real app content for the recents thumbnail.
-            if (appLockRepository.isLockOnMinimizeEnabled() &&
-                triggeringPackage.isNotEmpty() &&
-                triggeringPackage in appLockRepository.getLockedApps() &&
-                !isExclusionApp(currentPackage)
-            ) {
-                // Only launch placeholder if the app was actually unlocked (user saw content)
-                if (AppLockManager.isAppTemporarilyUnlocked(triggeringPackage) ||
-                    AppLockManager.appUnlockTimes.containsKey(triggeringPackage)
+                // When a protected app leaves the foreground and lock-on-minimize is enabled,
+                // launch the recents privacy placeholder so the system snapshots it instead of
+                // the real app content for the recents thumbnail.
+                if (appLockRepository.isLockOnMinimizeEnabled() &&
+                    triggeringPackage.isNotEmpty() &&
+                    triggeringPackage in appLockRepository.getLockedApps() &&
+                    !isExclusionApp(currentPackage)
                 ) {
-                    launchRecentsPrivacyPlaceholder(triggeringPackage)
+                    // Only launch placeholder if the app was actually unlocked (user saw content)
+                    if (AppLockManager.isAppTemporarilyUnlocked(triggeringPackage) ||
+                        AppLockManager.appUnlockTimes.containsKey(triggeringPackage)
+                    ) {
+                        launchRecentsPrivacyPlaceholder(triggeringPackage)
+                    }
                 }
-            }
 
-            checkAndLockApp(currentPackage, triggeringPackage, System.currentTimeMillis())
+                checkAndLockApp(currentPackage, triggeringPackage, System.currentTimeMillis())
+            } catch (e: Exception) {
+                Log.e(TAG, "Monitoring tick failed", e)
+            }
         }, 0, 100)
     }
 
@@ -275,17 +291,23 @@ class ExperimentalAppLockService : Service() {
     }
 
     private fun startForegroundService() {
-        createNotificationChannel()
-        val notification = createNotification()
+        try {
+            createNotificationChannel()
+            val notification = createNotification()
 
-        val type = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            determineForegroundServiceType()
-        } else 0
+            val type = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                determineForegroundServiceType()
+            } else 0
 
-        if (type != 0) {
-            startForeground(NOTIFICATION_ID, notification, type)
-        } else {
-            startForeground(NOTIFICATION_ID, notification)
+            if (type != 0) {
+                startForeground(NOTIFICATION_ID, notification, type)
+            } else {
+                startForeground(NOTIFICATION_ID, notification)
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Unable to start foreground service", e)
+            AppLockManager.startFallbackServices(this, this::class.java)
+            stopSelf()
         }
     }
 
