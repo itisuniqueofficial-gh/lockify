@@ -1,3 +1,21 @@
+# Lockify v1.1.0 Release Notes (Upcoming)
+
+## What's New in v1.1.0
+
+- Hidden Vault — encrypt photos, videos, and files with AES-256 (hardware-backed key)
+- Scheduled Locking — auto-lock selected apps by time and day of week
+- Intruder Detection — silently capture a front-camera photo after repeated failed unlocks (stored encrypted on your device only)
+- Location & Wi-Fi Rules — relax locking on trusted networks or at trusted places
+- Notification Privacy — hide notification content for locked apps
+- Usage Statistics — 7-day app usage insights with charts
+- Lock Profiles & Child Mode — multiple profiles, each with its own PIN
+- Encrypted Backup & Restore — password-protected local backups
+- Quick Settings Tile, Home-Screen Widget & Shake-to-Lock
+- Brute-Force Protection — escalating cooldown after repeated wrong attempts
+- Scrambled PIN Keypad, wrong-PIN shake animation, and configurable PIN length
+
+---
+
 # Lockify v1.0.3 Release Notes
 
 ## What's New in v1.0.3

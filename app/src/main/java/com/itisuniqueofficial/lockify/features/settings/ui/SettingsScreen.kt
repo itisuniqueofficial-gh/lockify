@@ -11,6 +11,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.filled.*
@@ -90,6 +92,16 @@ fun SettingsScreen(
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
     var disableHapticFeedback by remember { mutableStateOf(appLockRepository.shouldDisableHaptics()) }
+    var scrambleKeypad by remember { mutableStateOf(appLockRepository.isScrambleKeypadEnabled()) }
+    var intruderSelfie by remember { mutableStateOf(appLockRepository.isIntruderSelfieEnabled()) }
+    var hideNotifications by remember { mutableStateOf(appLockRepository.isHideLockedAppNotifications()) }
+    var shakeToLock by remember { mutableStateOf(appLockRepository.isShakeToLockEnabled()) }
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        intruderSelfie = granted
+        appLockRepository.setIntruderSelfieEnabled(granted)
+    }
     var loggingEnabled by remember { mutableStateOf(appLockRepository.isLoggingEnabled()) }
 
     var showPermissionDialog by remember { mutableStateOf(false) }
@@ -285,6 +297,17 @@ fun SettingsScreen(
                             }
                         ),
                         ToggleSettingItem(
+                            icon = Icons.Default.Dialpad,
+                            title = stringResource(R.string.settings_screen_scramble_keypad_title),
+                            subtitle = stringResource(R.string.settings_screen_scramble_keypad_desc),
+                            checked = scrambleKeypad,
+                            enabled = true,
+                            onCheckedChange = { isChecked ->
+                                scrambleKeypad = isChecked
+                                appLockRepository.setScrambleKeypadEnabled(isChecked)
+                            }
+                        ),
+                        ToggleSettingItem(
                             icon = Icons.Default.ShieldMoon,
                             title = stringResource(R.string.settings_screen_auto_unlock_title),
                             subtitle = stringResource(R.string.settings_screen_auto_unlock_desc),
@@ -311,6 +334,61 @@ fun SettingsScreen(
                             title = stringResource(R.string.settings_screen_change_pin_title),
                             subtitle = stringResource(R.string.settings_screen_change_pin_desc),
                             onClick = { navController.navigate(Screen.ChangePassword.route) }
+                        ),
+                        ActionSettingItem(
+                            icon = Icons.Default.Folder,
+                            title = stringResource(R.string.settings_screen_vault_title),
+                            subtitle = stringResource(R.string.settings_screen_vault_desc),
+                            onClick = { navController.navigate(Screen.Vault.route) }
+                        ),
+                        ActionSettingItem(
+                            icon = Icons.Default.BarChart,
+                            title = stringResource(R.string.settings_screen_stats_title),
+                            subtitle = stringResource(R.string.settings_screen_stats_desc),
+                            onClick = { navController.navigate(Screen.Stats.route) }
+                        ),
+                        ToggleSettingItem(
+                            icon = Icons.Default.CameraAlt,
+                            title = stringResource(R.string.settings_screen_intruder_title),
+                            subtitle = stringResource(R.string.settings_screen_intruder_desc),
+                            checked = intruderSelfie,
+                            enabled = true,
+                            onCheckedChange = { isChecked ->
+                                if (isChecked) {
+                                    cameraPermissionLauncher.launch(android.Manifest.permission.CAMERA)
+                                } else {
+                                    intruderSelfie = false
+                                    appLockRepository.setIntruderSelfieEnabled(false)
+                                }
+                            }
+                        ),
+                        ToggleSettingItem(
+                            icon = Icons.Default.NotificationsOff,
+                            title = stringResource(R.string.settings_screen_hide_notifications_title),
+                            subtitle = stringResource(R.string.settings_screen_hide_notifications_desc),
+                            checked = hideNotifications,
+                            enabled = true,
+                            onCheckedChange = { isChecked ->
+                                hideNotifications = isChecked
+                                appLockRepository.setHideLockedAppNotifications(isChecked)
+                                if (isChecked) {
+                                    context.startActivity(
+                                        android.content.Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS")
+                                            .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                                    )
+                                }
+                            }
+                        ),
+                        ToggleSettingItem(
+                            icon = Icons.Default.Vibration,
+                            title = stringResource(R.string.settings_screen_shake_to_lock_title),
+                            subtitle = stringResource(R.string.settings_screen_shake_to_lock_desc),
+                            checked = shakeToLock,
+                            enabled = true,
+                            onCheckedChange = { isChecked ->
+                                shakeToLock = isChecked
+                                appLockRepository.setShakeToLockEnabled(isChecked)
+                            }
                         ),
                         ActionSettingItem(
                             icon = Timer,
