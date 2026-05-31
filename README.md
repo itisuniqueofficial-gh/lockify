@@ -72,6 +72,19 @@ the core experience lightweight and on-device.
 - Real-time background protection
 - Lightweight and fast
 
+### New in v1.1.0 (upcoming)
+
+- Hidden vault — encrypt photos, videos, and files (AES-256, hardware-backed key)
+- Scheduled locking by time and day of week
+- Intruder detection — silent front-camera capture, encrypted on-device only
+- Location and trusted Wi-Fi rules
+- Notification privacy for locked apps
+- Usage statistics with on-device charts
+- Lock profiles and child (whitelist) mode
+- Encrypted backup and restore
+- Brute-force cooldown and scrambled PIN keypad
+- Quick Settings tile, home-screen widget, and shake-to-lock
+
 <br/>
 
 ## Play Store

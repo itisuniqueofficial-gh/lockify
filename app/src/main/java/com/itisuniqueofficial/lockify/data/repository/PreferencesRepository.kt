@@ -20,6 +20,8 @@ class PreferencesRepository(context: Context) {
         appLockPrefs.edit { putString(KEY_PASSWORD, CredentialHasher.hash(password)) }
     }
     fun getPassword(): String? = appLockPrefs.getString(KEY_PASSWORD, null)
+    /** Restores a previously-hashed credential verbatim (used by backup restore). */
+    fun setRawPasswordHash(hash: String) = appLockPrefs.edit { putString(KEY_PASSWORD, hash) }
     fun validatePassword(inputPassword: String): Boolean {
         val stored = getPassword()
         if (CredentialHasher.verify(inputPassword, stored)) return true
@@ -34,6 +36,7 @@ class PreferencesRepository(context: Context) {
         appLockPrefs.edit { putString(KEY_PATTERN, CredentialHasher.hash(pattern)) }
     }
     fun getPattern(): String? = appLockPrefs.getString(KEY_PATTERN, null)
+    fun setRawPatternHash(hash: String) = appLockPrefs.edit { putString(KEY_PATTERN, hash) }
     fun validatePattern(inputPattern: String): Boolean {
         val stored = getPattern()
         if (CredentialHasher.verify(inputPattern, stored)) return true
@@ -63,6 +66,30 @@ class PreferencesRepository(context: Context) {
         settingsPrefs.edit { putBoolean(KEY_DISABLE_HAPTICS, enabled) }
     }
     fun shouldDisableHaptics(): Boolean = settingsPrefs.getBoolean(KEY_DISABLE_HAPTICS, false)
+
+    fun setScrambleKeypadEnabled(enabled: Boolean) {
+        settingsPrefs.edit { putBoolean(KEY_SCRAMBLE_KEYPAD, enabled) }
+    }
+    fun isScrambleKeypadEnabled(): Boolean = settingsPrefs.getBoolean(KEY_SCRAMBLE_KEYPAD, false)
+
+    fun setMinPinLength(length: Int) { settingsPrefs.edit { putInt(KEY_MIN_PIN_LENGTH, length) } }
+    fun getMinPinLength(): Int = settingsPrefs.getInt(KEY_MIN_PIN_LENGTH, DEFAULT_MIN_PIN_LENGTH)
+
+    fun setIntruderSelfieEnabled(enabled: Boolean) {
+        settingsPrefs.edit { putBoolean(KEY_INTRUDER_SELFIE, enabled) }
+    }
+    fun isIntruderSelfieEnabled(): Boolean = settingsPrefs.getBoolean(KEY_INTRUDER_SELFIE, false)
+
+    fun setHideLockedAppNotifications(enabled: Boolean) {
+        settingsPrefs.edit { putBoolean(KEY_HIDE_NOTIFICATIONS, enabled) }
+    }
+    fun isHideLockedAppNotifications(): Boolean =
+        settingsPrefs.getBoolean(KEY_HIDE_NOTIFICATIONS, false)
+
+    fun setShakeToLockEnabled(enabled: Boolean) {
+        settingsPrefs.edit { putBoolean(KEY_SHAKE_TO_LOCK, enabled) }
+    }
+    fun isShakeToLockEnabled(): Boolean = settingsPrefs.getBoolean(KEY_SHAKE_TO_LOCK, false)
 
     fun setShowSystemApps(enabled: Boolean) {
         settingsPrefs.edit { putBoolean(KEY_SHOW_SYSTEM_APPS, enabled) }
@@ -146,6 +173,12 @@ class PreferencesRepository(context: Context) {
         private const val KEY_PATTERN = "pattern"
         private const val KEY_BIOMETRIC_AUTH_ENABLED = "use_biometric_auth"
         private const val KEY_DISABLE_HAPTICS = "disable_haptics"
+        private const val KEY_SCRAMBLE_KEYPAD = "scramble_keypad"
+        private const val KEY_MIN_PIN_LENGTH = "min_pin_length"
+        private const val KEY_INTRUDER_SELFIE = "intruder_selfie"
+        private const val KEY_HIDE_NOTIFICATIONS = "hide_locked_app_notifications"
+        private const val KEY_SHAKE_TO_LOCK = "shake_to_lock"
+        private const val DEFAULT_MIN_PIN_LENGTH = 4
         private const val KEY_USE_MAX_BRIGHTNESS = "use_max_brightness"
         private const val KEY_ANTI_UNINSTALL = "anti_uninstall"
         private const val KEY_UNLOCK_TIME_DURATION = "unlock_time_duration"

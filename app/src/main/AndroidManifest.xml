@@ -8,6 +8,13 @@
         tools:ignore="PackageVisibilityPolicy,QueryAllPackagesPermission" />
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-feature
+        android:name="android.hardware.camera.front"
+        android:required="false" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
@@ -117,6 +124,16 @@
                 android:value="accessibility" />
         </service>
 
+        <service
+            android:name=".features.notifications.LockifyNotificationService"
+            android:exported="false"
+            android:label="@string/app_name"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
+
         <receiver
             android:name=".core.broadcast.DeviceAdmin"
             android:description="@string/device_admin_description"
@@ -154,6 +171,29 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths" />
         </provider>
+
+        <service
+            android:name=".features.quicktile.LockTileService"
+            android:exported="true"
+            android:icon="@android:drawable/ic_lock_idle_lock"
+            android:label="@string/app_name"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
+
+        <receiver
+            android:name=".features.widget.LockWidgetProvider"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="com.itisuniqueofficial.lockify.LOCK_ALL" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/lock_widget_info" />
+        </receiver>
 
     </application>
 </manifest>

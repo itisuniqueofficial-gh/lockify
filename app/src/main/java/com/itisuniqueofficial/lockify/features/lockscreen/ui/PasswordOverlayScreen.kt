@@ -16,6 +16,7 @@ import androidx.biometric.BiometricPrompt
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -47,6 +48,8 @@ import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.lifecycleScope
 import com.itisuniqueofficial.lockify.R
 import com.itisuniqueofficial.lockify.core.ui.shapes
+import com.itisuniqueofficial.lockify.core.security.BruteForceGuard
+import com.itisuniqueofficial.lockify.features.intruder.IntruderCapture
 import com.itisuniqueofficial.lockify.core.utils.appLockRepository
 import com.itisuniqueofficial.lockify.core.utils.launchDeviceCredentialAuth
 import com.itisuniqueofficial.lockify.core.utils.vibrate
@@ -66,6 +69,7 @@ class PasswordOverlayActivity : FragmentActivity() {
     private lateinit var biometricPrompt: BiometricPrompt
     private lateinit var promptInfo: BiometricPrompt.PromptInfo
     private lateinit var appLockRepository: AppLockRepository
+    private val bruteForceGuard by lazy { BruteForceGuard(applicationContext) }
     internal var lockedPackageNameFromIntent: String? = null
     internal var triggeringPackageNameFromIntent: String? = null
 
@@ -167,6 +171,15 @@ class PasswordOverlayActivity : FragmentActivity() {
         finish()
     }
 
+    private fun showLockoutToast(remainingMs: Long) {
+        val seconds = ((remainingMs + 999L) / 1000L).toInt()
+        android.widget.Toast.makeText(
+            this,
+            getString(R.string.too_many_attempts_try_again_in, seconds),
+            android.widget.Toast.LENGTH_SHORT
+        ).show()
+    }
+
     private fun loadAppNameAsync() {
         lifecycleScope.launch {
             val name = withContext(Dispatchers.IO) {
@@ -185,29 +198,57 @@ class PasswordOverlayActivity : FragmentActivity() {
 
     private fun setupUI() {
         val onPinAttemptCallback = { pin: String ->
-            val isValid = appLockRepository.validatePassword(pin)
-            if (isValid) {
-                lockedPackageNameFromIntent?.let { pkgName ->
-                    AppLockManager.unlockApp(pkgName)
-                    finishAfterTransition()
-                }
+            val lockout = bruteForceGuard.remainingLockoutMs()
+            if (lockout > 0L) {
+                showLockoutToast(lockout)
+                false
             } else {
-                AppLockManager.updateState(AppLockManager.LockState.AUTH_FAILED)
+                val isValid = appLockRepository.validatePassword(pin)
+                if (isValid) {
+                    bruteForceGuard.recordSuccess()
+                    lockedPackageNameFromIntent?.let { pkgName ->
+                        AppLockManager.unlockApp(pkgName)
+                        finishAfterTransition()
+                    }
+                } else {
+                    val cooldown = bruteForceGuard.recordFailure()
+                    if (cooldown > 0L) {
+                        showLockoutToast(cooldown)
+                        if (appLockRepository.isIntruderSelfieEnabled()) {
+                            IntruderCapture(this).capture()
+                        }
+                    }
+                    AppLockManager.updateState(AppLockManager.LockState.AUTH_FAILED)
+                }
+                isValid
             }
-            isValid
         }
 
         val onPatternAttemptCallback = { pattern: String ->
-            val isValid = appLockRepository.validatePattern(pattern)
-            if (isValid) {
-                lockedPackageNameFromIntent?.let { pkgName ->
-                    AppLockManager.unlockApp(pkgName)
-                    finishAfterTransition()
-                }
+            val lockout = bruteForceGuard.remainingLockoutMs()
+            if (lockout > 0L) {
+                showLockoutToast(lockout)
+                false
             } else {
-                AppLockManager.updateState(AppLockManager.LockState.AUTH_FAILED)
+                val isValid = appLockRepository.validatePattern(pattern)
+                if (isValid) {
+                    bruteForceGuard.recordSuccess()
+                    lockedPackageNameFromIntent?.let { pkgName ->
+                        AppLockManager.unlockApp(pkgName)
+                        finishAfterTransition()
+                    }
+                } else {
+                    val cooldown = bruteForceGuard.recordFailure()
+                    if (cooldown > 0L) {
+                        showLockoutToast(cooldown)
+                        if (appLockRepository.isIntruderSelfieEnabled()) {
+                            IntruderCapture(this).capture()
+                        }
+                    }
+                    AppLockManager.updateState(AppLockManager.LockState.AUTH_FAILED)
+                }
+                isValid
             }
-            isValid
         }
 
         val onForgotPasswordCallback = {
@@ -429,7 +470,7 @@ fun PasswordOverlayScreen(
     ) {
         val passwordState = remember { mutableStateOf("") }
         var showError by remember { mutableStateOf(false) }
-        val minLength = 4
+        val minLength = remember { appLockRepository.getMinPinLength() }
 
         Box(modifier = Modifier.fillMaxSize()) {
             if (isLandscape) {
@@ -470,6 +511,7 @@ fun PasswordOverlayScreen(
 
                     PasswordIndicators(
                         passwordLength = passwordState.value.length,
+                        shake = showError,
                     )
 
                     if (showError) {
@@ -555,6 +597,7 @@ fun PasswordOverlayScreen(
 
                 PasswordIndicators(
                     passwordLength = passwordState.value.length,
+                    shake = showError,
                 )
 
                 if (showError) {
@@ -610,8 +653,17 @@ fun PasswordOverlayScreen(
 @OptIn(ExperimentalMaterial3ExpressiveApi::class, ExperimentalAnimationApi::class)
 @Composable
 fun PasswordIndicators(
-    passwordLength: Int
+    passwordLength: Int,
+    shake: Boolean = false
 ) {
+    val shakeOffset = remember { Animatable(0f) }
+    LaunchedEffect(shake) {
+        if (shake) {
+            for (dx in listOf(-24f, 24f, -18f, 18f, -10f, 10f, 0f)) {
+                shakeOffset.animateTo(dx, tween(40))
+            }
+        }
+    }
     val windowInfo = LocalWindowInfo.current
     val configuration = LocalConfiguration.current
 
@@ -657,6 +709,7 @@ fun PasswordIndicators(
 
     Box(
         modifier = Modifier
+            .graphicsLayer { translationX = shakeOffset.value }
             .width(maxWidth)
             .height(indicatorSize + 32.dp),
         contentAlignment = Alignment.Center
@@ -840,6 +893,15 @@ fun KeypadSection(
 
     val disableHaptics = context.appLockRepository().shouldDisableHaptics()
 
+    // Digit layout: positions 0..8 fill the 3x3 grid, position 9 is the bottom-centre key.
+    // Shuffled per presentation when the anti-shoulder-surfing option is enabled.
+    val digits = remember {
+        if (context.appLockRepository().isScrambleKeypadEnabled())
+            (0..9).map(Int::toString).shuffled()
+        else
+            listOf("1", "2", "3", "4", "5", "6", "7", "8", "9", "0")
+    }
+
     val onSpecialKeyClick = remember(
         passwordState,
         minLength,
@@ -898,28 +960,28 @@ fun KeypadSection(
         }
         KeypadRow(
             disableHaptics = disableHaptics,
-            keys = listOf("1", "2", "3"),
+            keys = listOf(digits[0], digits[1], digits[2]),
             onKeyClick = onDigitKeyClick,
             buttonSize = buttonSize,
             buttonSpacing = buttonSpacing
         )
         KeypadRow(
             disableHaptics = disableHaptics,
-            keys = listOf("4", "5", "6"),
+            keys = listOf(digits[3], digits[4], digits[5]),
             onKeyClick = onDigitKeyClick,
             buttonSize = buttonSize,
             buttonSpacing = buttonSpacing
         )
         KeypadRow(
             disableHaptics = disableHaptics,
-            keys = listOf("7", "8", "9"),
+            keys = listOf(digits[6], digits[7], digits[8]),
             onKeyClick = onDigitKeyClick,
             buttonSize = buttonSize,
             buttonSpacing = buttonSpacing
         )
         KeypadRow(
             disableHaptics = disableHaptics,
-            keys = listOf("backspace", "0", "proceed"),
+            keys = listOf("backspace", digits[9], "proceed"),
             icons = listOf(Backspace, null, Icons.AutoMirrored.Rounded.KeyboardArrowRight),
             onKeyClick = onSpecialKeyClick,
             buttonSize = buttonSize,
@@ -951,7 +1013,6 @@ private fun handleKeypadSpecialButtonLogic(
     val appLockRepository = context.appLockRepository()
 
     when (key) {
-        "0" -> addDigitToPassword(passwordState, key, onPasswordChange)
         "backspace" -> {
             if (passwordState.value.isNotEmpty()) {
                 passwordState.value = passwordState.value.dropLast(1)
@@ -997,6 +1058,8 @@ private fun handleKeypadSpecialButtonLogic(
                 }
             }
         }
+
+        else -> addDigitToPassword(passwordState, key, onPasswordChange)
     }
 }
 

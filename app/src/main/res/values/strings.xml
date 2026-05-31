@@ -1,11 +1,13 @@
 <resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
     <string name="app_name">Lockify</string>
+    <string name="widget_lock_all">Lock all</string>
 
     <string name="device_admin_description">Prevents unauthorized people from uninstalling the app.</string>
     <string name="accessibility_service_description">Allows Lockify to detect when protected apps are opened and show password verification.</string>
 
     <string name="unlock_to_disable_admin">Enter your password to disable admin permission.</string>
     <string name="incorrect_pin_try_again">Incorrect PIN. Please try again.</string>
+    <string name="too_many_attempts_try_again_in">Too many attempts. Try again in %1$d s.</string>
     <string name="password_verified_admin">Password verified, you can now disable admin permission</string>
     <string name="choose_app_detection">Choose App Detection Method</string>
     <string name="app_detection_desc">Select how you want Lockify to detect when protected apps are launched.</string>
@@ -162,6 +164,18 @@ Make sure you have Shizuku installed and enabled via ADB. Tap \'Next\' to grant 
     <string name="recents_privacy_subtitle">Preview hidden for privacy\nLocked by Lockify</string>
     <string name="settings_screen_haptic_feedback_title">Haptic Feedback</string>
     <string name="settings_screen_haptic_feedback_desc">Disable haptic feedback on key presses</string>
+    <string name="settings_screen_scramble_keypad_title">Scramble PIN keypad</string>
+    <string name="settings_screen_scramble_keypad_desc">Randomise digit positions to prevent shoulder-surfing</string>
+    <string name="settings_screen_vault_title">Hidden vault</string>
+    <string name="settings_screen_vault_desc">Encrypt photos, videos and files (AES-256)</string>
+    <string name="settings_screen_stats_title">Usage statistics</string>
+    <string name="settings_screen_stats_desc">See which apps you use most over the last 7 days</string>
+    <string name="settings_screen_intruder_title">Intruder detection</string>
+    <string name="settings_screen_intruder_desc">Silently capture a front-camera photo after repeated failed unlocks (stored encrypted on this device only)</string>
+    <string name="settings_screen_hide_notifications_title">Hide notifications for locked apps</string>
+    <string name="settings_screen_hide_notifications_desc">Replace previews from locked apps with a generic message (needs Notification Access)</string>
+    <string name="settings_screen_shake_to_lock_title">Shake to lock</string>
+    <string name="settings_screen_shake_to_lock_desc">Shake the device to immediately re-lock all apps (Usage Stats backend)</string>
     <string name="settings_screen_backend_implementation_title">Backend Implementation</string>
     <string name="settings_screen_backend_implementation_desc">Select the method Lockify uses to detect foreground apps</string>
     <string name="settings_screen_backend_implementation_accessibility_title">Accessibility Service</string>

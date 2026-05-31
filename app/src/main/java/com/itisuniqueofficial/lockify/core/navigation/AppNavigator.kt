@@ -147,6 +147,14 @@ fun AppNavHost(navController: NavHostController, startDestination: String) {
         composable(Screen.AntiUninstall.route) {
             AntiUninstallScreen(navController)
         }
+
+        composable(Screen.Vault.route) {
+            com.itisuniqueofficial.lockify.features.vault.ui.VaultScreen(navController)
+        }
+
+        composable(Screen.Stats.route) {
+            com.itisuniqueofficial.lockify.features.stats.ui.StatsScreen(navController)
+        }
     }
 }
 

@@ -42,6 +42,7 @@ class ExperimentalAppLockService : Service() {
     private var timer: Timer? = null
     private var previousForegroundPackage = ""
     private var screenReceiverRegistered = false
+    private var shakeDetector: com.itisuniqueofficial.lockify.features.shake.ShakeDetector? = null
 
     // Cache keyboard packages to avoid querying InputMethodManager on every 100ms tick
     private var keyboardPackages: List<String> = emptyList()
@@ -99,11 +100,19 @@ class ExperimentalAppLockService : Service() {
         startMonitoringTimer()
         startForegroundService()
 
+        if (appLockRepository.isShakeToLockEnabled() && shakeDetector == null) {
+            shakeDetector = com.itisuniqueofficial.lockify.features.shake.ShakeDetector(this) {
+                AppLockManager.clearAllUnlockState()
+            }.also { it.start() }
+        }
+
         return START_STICKY
     }
 
     override fun onDestroy() {
         timer?.cancel()
+        shakeDetector?.stop()
+        shakeDetector = null
         LogUtils.d(TAG, "ExperimentalAppLockService destroyed.")
 
         if (screenReceiverRegistered) {

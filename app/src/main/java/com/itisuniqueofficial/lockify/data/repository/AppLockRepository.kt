@@ -38,6 +38,8 @@ class AppLockRepository(private val context: Context) {
 
     fun getPassword(): String? = preferencesRepository.getPassword()
     fun setPassword(password: String) = preferencesRepository.setPassword(password)
+    fun setRawPasswordHash(hash: String) = preferencesRepository.setRawPasswordHash(hash)
+    fun setRawPatternHash(hash: String) = preferencesRepository.setRawPatternHash(hash)
     fun validatePassword(inputPassword: String): Boolean =
         preferencesRepository.validatePassword(inputPassword)
 
@@ -57,6 +59,21 @@ class AppLockRepository(private val context: Context) {
     fun shouldUseMaxBrightness(): Boolean = preferencesRepository.shouldUseMaxBrightness()
     fun setDisableHaptics(enabled: Boolean) = preferencesRepository.setDisableHaptics(enabled)
     fun shouldDisableHaptics(): Boolean = preferencesRepository.shouldDisableHaptics()
+    fun setScrambleKeypadEnabled(enabled: Boolean) =
+        preferencesRepository.setScrambleKeypadEnabled(enabled)
+    fun isScrambleKeypadEnabled(): Boolean = preferencesRepository.isScrambleKeypadEnabled()
+    fun setMinPinLength(length: Int) = preferencesRepository.setMinPinLength(length)
+    fun getMinPinLength(): Int = preferencesRepository.getMinPinLength()
+    fun setIntruderSelfieEnabled(enabled: Boolean) =
+        preferencesRepository.setIntruderSelfieEnabled(enabled)
+    fun isIntruderSelfieEnabled(): Boolean = preferencesRepository.isIntruderSelfieEnabled()
+    fun setHideLockedAppNotifications(enabled: Boolean) =
+        preferencesRepository.setHideLockedAppNotifications(enabled)
+    fun isHideLockedAppNotifications(): Boolean =
+        preferencesRepository.isHideLockedAppNotifications()
+    fun setShakeToLockEnabled(enabled: Boolean) =
+        preferencesRepository.setShakeToLockEnabled(enabled)
+    fun isShakeToLockEnabled(): Boolean = preferencesRepository.isShakeToLockEnabled()
     fun setShowSystemApps(enabled: Boolean) = preferencesRepository.setShowSystemApps(enabled)
     fun shouldShowSystemApps(): Boolean = preferencesRepository.shouldShowSystemApps()
 
