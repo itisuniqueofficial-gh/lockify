@@ -141,8 +141,29 @@ Lockify uses GitHub Actions for a fully automated, secure release pipeline.
 | --- | --- | --- |
 | `ci.yml` | push to `main`/`master`/`develop`, manual dispatch | wrapper validation, lint, unit tests, debug APK, uploads reports & APK |
 | `pull-request.yml` | pull requests | lint, unit tests, debug build verification (merge gate) |
-| `release.yml` | push tag `v*.*.*`, manual dispatch (version input) | full signed release: tests, lint, signed APK + AAB, signature/version verification, checksums, release notes, GitHub Release |
+| `auto-release.yml` | push to `main`/`master`, manual dispatch | **per-commit** signed APK + AAB published as a **prerelease** GitHub Release (`auto-build-*`) |
+| `release.yml` | push tag `v*.*.*`, manual dispatch (version input) | **official** signed release: tests, lint, signed APK + AAB, verification, checksums, release notes, GitHub Release (marked latest) |
 | `nightly.yml` | nightly schedule, manual dispatch | debug build + tests, uploads a `Nightly Build` artifact (no release) |
+
+### Automatic build releases (every commit)
+
+Every push to the default branch triggers `auto-release.yml`, which runs tests +
+lint, builds and signs the APK and AAB, verifies signatures and version,
+generates checksums and detailed release notes (with build + commit info), and
+publishes a **prerelease** GitHub Release:
+
+```text
+Push to main  →  Auto Release workflow  →  signed APK + AAB  →  prerelease GitHub Release
+```
+
+- **Tag / build id:** `auto-build-<run-number>-<short-sha>` (unique per commit; re-runs are idempotent).
+- **Version:** `versionName = <latest-official>-build.<run-number>`, `versionCode = <run-number>` (strictly increasing).
+- **Assets:** `Lockify-v<version>-release.apk`, `Lockify-v<version>-release.aab`, `Lockify-v<version>-SHA256SUMS.txt`, and `Lockify-v<version>-mapping.txt`.
+- These builds are **prereleases** and never take the repository's "Latest release" badge — that is reserved for official `v*.*.*` releases, which are produced separately by `release.yml`.
+
+Find the newest automated APK/AAB on the [Releases page](https://github.com/itisuniqueofficial-gh/lockify/releases) at the top of the list (marked *Pre-release*). A failed build never publishes a release.
+
+To trigger one manually: *Actions → Auto Release (per-commit build) → Run workflow*.
 
 ### Cut a release
 
