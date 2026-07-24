@@ -1,0 +1,111 @@
+name: Automated Fix
+
+# Attempts SAFE, deterministic fixes and opens a pull request. It never pushes
+# to the default branch directly and never merges automatically — every change
+# is validated (tests + lint + debug build) and reviewed via the PR.
+#
+# Trigger it manually with the issue number it addresses, or by adding the
+# `auto-fix` label to an issue.
+
+on:
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: "Issue number this fix addresses"
+        required: true
+        type: string
+  issues:
+    types: [labeled]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: automated-fix-${{ github.event.inputs.issue_number || github.event.issue.number }}
+  cancel-in-progress: true
+
+jobs:
+  fix:
+    name: Apply safe fixes and open PR
+    # Only run for the issues trigger when the added label is exactly "auto-fix".
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.label.name == 'auto-fix' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: write
+      pull-requests: write
+    env:
+      ISSUE_NUMBER: ${{ github.event.inputs.issue_number || github.event.issue.number }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Apply safe automated fixes
+        id: fix
+        run: |
+          set -euo pipefail
+          chmod +x scripts/auto-fix.sh
+          scripts/auto-fix.sh
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "No safe automated fixes were applicable."
+          fi
+
+      - name: Set up JDK 17
+        if: steps.fix.outputs.changed == 'true'
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Android SDK
+        if: steps.fix.outputs.changed == 'true'
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK packages
+        if: steps.fix.outputs.changed == 'true'
+        run: sdkmanager "platforms;android-36" "build-tools;36.0.0"
+
+      - name: Set up Gradle
+        if: steps.fix.outputs.changed == 'true'
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Validate (tests, lint, debug build)
+        if: steps.fix.outputs.changed == 'true'
+        run: ./gradlew :app:testDebugUnitTest :app:lintDebug :app:assembleDebug --no-daemon --stacktrace
+
+      - name: Create pull request
+        if: steps.fix.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          BRANCH="fix/automated-${ISSUE_NUMBER}"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$BRANCH"
+          git add -A
+          git commit -m "fix: automatically resolve issue #${ISSUE_NUMBER}"
+          git push --force-with-lease origin "$BRANCH"
+
+          BODY_FILE="$RUNNER_TEMP/pr-body.md"
+          {
+            printf '## Automated Fix\n\n'
+            printf 'This PR was generated automatically to help resolve #%s.\n\n' "$ISSUE_NUMBER"
+            printf '## Changes\n\n'
+            printf 'Safe, deterministic normalisation only (trailing whitespace, final\n'
+            printf 'newline, wrapper permissions). No program logic was modified.\n\n'
+            printf '## Validation\n\n'
+            printf -- '- Unit tests: ✅\n- Lint: ✅\n- Debug build: ✅\n\n'
+            printf '## Risk\n\nLow\n\n## Review Required\n\nYes\n'
+          } > "$BODY_FILE"
+
+          gh pr create --repo "$REPO" \
+            --title "fix: automatically resolve issue #${ISSUE_NUMBER}" \
+            --body-file "$BODY_FILE" \
+            --base "${GITHUB_REF_NAME}" \
+            --head "$BRANCH" || gh pr edit "$BRANCH" --repo "$REPO" --body-file "$BODY_FILE"

@@ -141,8 +141,8 @@ jobs:
           APK_SRC="app/build/outputs/apk/release/app-release.apk"
           AAB_SRC="app/build/outputs/bundle/release/app-release.aab"
           MAP_SRC="app/build/outputs/mapping/release/mapping.txt"
-          APK_OUT="release/Lockify-v${VERSION_NAME}-release.apk"
-          AAB_OUT="release/Lockify-v${VERSION_NAME}-release.aab"
+          APK_OUT="release/Lockify-v${VERSION_NAME}.apk"
+          AAB_OUT="release/Lockify-v${VERSION_NAME}.aab"
           cp "$APK_SRC" "$APK_OUT"
           cp "$AAB_SRC" "$AAB_OUT"
           if [ -f "$MAP_SRC" ]; then
@@ -171,8 +171,8 @@ jobs:
           prerelease: false
           fail_on_unmatched_files: true
           files: |
-            release/Lockify-v*-release.apk
-            release/Lockify-v*-release.aab
+            release/Lockify-v*.apk
+            release/Lockify-v*.aab
             release/Lockify-v*-SHA256SUMS.txt
             release/Lockify-v*-mapping.txt
         env:
@@ -184,8 +184,8 @@ jobs:
         with:
           name: release-artifacts-${{ env.TAG }}
           path: |
-            release/Lockify-v*-release.apk
-            release/Lockify-v*-release.aab
+            release/Lockify-v*.apk
+            release/Lockify-v*.aab
             release/Lockify-v*-SHA256SUMS.txt
             release/Lockify-v*-mapping.txt
           if-no-files-found: error

@@ -1,0 +1,81 @@
+name: Issue Detection
+
+# When a key workflow fails, automatically open (or update) a GitHub Issue with
+# the failure context, deduplicated by a stable title so repeated failures
+# update the same issue instead of creating new ones.
+
+on:
+  workflow_run:
+    workflows:
+      - "CI"
+      - "Auto Version & Official Release"
+      - "Auto Release (per-commit build)"
+      - "Release"
+    types: [completed]
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  report-failure:
+    name: Report workflow failure
+    if: ${{ github.event.workflow_run.conclusion == 'failure' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Create or update failure issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          WF_NAME: ${{ github.event.workflow_run.name }}
+          WF_BRANCH: ${{ github.event.workflow_run.head_branch }}
+          WF_SHA: ${{ github.event.workflow_run.head_sha }}
+          WF_URL: ${{ github.event.workflow_run.html_url }}
+          WF_RUN_NUMBER: ${{ github.event.workflow_run.run_number }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          SHORT_SHA="${WF_SHA:0:7}"
+          TITLE="❌ CI failure: ${WF_NAME} on ${WF_BRANCH}"
+
+          # Choose labels; release workflows are release blockers.
+          LABELS="automated,ci-failure,bug"
+          case "$WF_NAME" in
+            *Release*|*Version*) LABELS="$LABELS,release-blocker" ;;
+          esac
+
+          BODY_FILE="$RUNNER_TEMP/issue-body.md"
+          {
+            printf '## Status\n\n'
+            printf '❌ Workflow `%s` failed (run #%s).\n\n' "$WF_NAME" "$WF_RUN_NUMBER"
+            printf '## Details\n\n'
+            printf -- '- Branch: `%s`\n' "$WF_BRANCH"
+            printf -- '- Commit: `%s` (%s)\n' "$SHORT_SHA" "$WF_SHA"
+            printf -- '- Workflow run: %s\n\n' "$WF_URL"
+            printf '## Next steps\n\n'
+            printf '1. Open the failed run above and inspect the failing step logs.\n'
+            printf '2. Reproduce locally:\n'
+            printf '   ```bash\n'
+            printf '   ./gradlew :app:testDebugUnitTest :app:lintDebug :app:assembleDebug\n'
+            printf '   ```\n'
+            printf '3. Fix the root cause and push, or run the `Automated Fix` workflow.\n\n'
+            printf '## Environment\n\n'
+            printf -- '- Runner: ubuntu-latest\n- JDK: 17 (Temurin)\n- Android SDK: platform 36, build-tools 36.0.0\n\n'
+            printf -- '---\n_Created automatically by the Issue Detection workflow._\n'
+          } > "$BODY_FILE"
+
+          # Ensure labels exist (ignore failures if they already do).
+          for l in automated ci-failure bug release-blocker; do
+            gh label create "$l" --repo "$REPO" --force >/dev/null 2>&1 || true
+          done
+
+          EXISTING="$(gh issue list --repo "$REPO" --state open --search "in:title \"${TITLE}\"" \
+            --json number,title --jq ".[] | select(.title==\"${TITLE}\") | .number" | head -n1 || true)"
+
+          if [ -n "$EXISTING" ]; then
+            gh issue comment "$EXISTING" --repo "$REPO" --body-file "$BODY_FILE"
+            echo "Updated existing issue #$EXISTING"
+          else
+            gh issue create --repo "$REPO" --title "$TITLE" --label "$LABELS" --body-file "$BODY_FILE"
+            echo "Created new failure issue"
+          fi

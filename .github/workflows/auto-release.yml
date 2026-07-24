@@ -40,6 +40,7 @@ jobs:
       short_sha: ${{ steps.meta.outputs.short_sha }}
       prev_tag: ${{ steps.meta.outputs.prev_tag }}
       already_released: ${{ steps.dup.outputs.already_released }}
+      official_pending: ${{ steps.official.outputs.official_pending }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -78,6 +79,21 @@ jobs:
             echo "prev_tag=$PREV_TAG"
           } >> "$GITHUB_OUTPUT"
 
+      - name: Determine if an official release is pending
+        id: official
+        run: |
+          set -euo pipefail
+          # If commits since the last tag warrant a semantic bump, the Auto
+          # Version workflow will publish an official release for this push, so
+          # this per-commit prerelease is skipped to avoid a duplicate build.
+          eval "$(scripts/next-version.sh 2>/dev/null | grep '^BUMP=')"
+          if [ "${BUMP:-none}" != "none" ]; then
+            echo "Official release pending (bump=${BUMP}); prerelease will be skipped."
+            echo "official_pending=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "official_pending=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Check for existing release (idempotency)
         id: dup
         env:
@@ -95,6 +111,7 @@ jobs:
   release:
     name: Build, sign, verify and publish automated build
     needs: prepare
+    if: needs.prepare.outputs.official_pending != 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 60
     environment: production

@@ -75,8 +75,8 @@ cat <<'EOF'
 
 ## Downloads
 
-- **APK** — direct installation on a device (`Lockify-v<version>-release.apk`).
-- **AAB** — Google Play publishing (`Lockify-v<version>-release.aab`).
+- **APK** — direct installation on a device (`Lockify-v<version>.apk`).
+- **AAB** — Google Play publishing (`Lockify-v<version>.aab`).
 
 ## Checksums
 

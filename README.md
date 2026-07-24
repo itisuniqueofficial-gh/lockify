@@ -123,13 +123,38 @@ On Windows PowerShell:
 # Debug build
 ./gradlew :app:assembleDebug
 
-# Release build (falls back to debug signing if no keystore is configured)
+# Release build — requires a release keystore (see below)
 ./gradlew :app:assembleRelease :app:bundleRelease
 ```
 
-To produce a *release-signed* build locally, provide the signing inputs as
-Gradle properties or environment variables: `KEYSTORE_FILE`, `KEYSTORE_PASSWORD`,
-`KEY_ALIAS`, `KEY_PASSWORD`.
+Provide the signing inputs as Gradle properties or environment variables:
+`KEYSTORE_FILE`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`, `KEY_PASSWORD`. A release
+build is always signed with a real release key — every published build shares
+one stable certificate so it installs cleanly as an update. If no keystore is
+configured the release build **fails loudly** rather than emitting an unsigned
+or debug-signed APK (which would cause "App not installed" on update). For a
+throwaway local build only, you may opt in explicitly:
+
+```bash
+./gradlew :app:assembleRelease -PallowDebugSigningForRelease=true
+```
+
+> Never distribute a build produced this way — it is signed with the local
+> debug key and cannot update an official release.
+
+### Troubleshooting: "App not installed"
+
+Official Lockify APKs are signed with a single, stable release key and use the
+v2 + v3 APK signature schemes, so they install and update cleanly on Android
+8.0 (API 26) and newer. If you still see "App not installed":
+
+- **A build signed with a different key is already installed** (e.g. an older
+  sideloaded/debug build). Android blocks updates across different signing
+  certificates — uninstall the existing copy, then install the official APK.
+- **Incomplete download** — re-download and verify with the release's
+  `Lockify-v<version>-SHA256SUMS.txt` (`sha256sum -c`).
+- **Sideloading disabled** — allow installation from your browser/file manager
+  in Android settings.
 
 ## Continuous Integration & Releases
 
@@ -141,29 +166,52 @@ Lockify uses GitHub Actions for a fully automated, secure release pipeline.
 | --- | --- | --- |
 | `ci.yml` | push to `main`/`master`/`develop`, manual dispatch | wrapper validation, lint, unit tests, debug APK, uploads reports & APK |
 | `pull-request.yml` | pull requests | lint, unit tests, debug build verification (merge gate) |
-| `auto-release.yml` | push to `main`/`master`, manual dispatch | **per-commit** signed APK + AAB published as a **prerelease** GitHub Release (`auto-build-*`) |
-| `release.yml` | push tag `v*.*.*`, manual dispatch (version input) | **official** signed release: tests, lint, signed APK + AAB, verification, checksums, release notes, GitHub Release (marked latest) |
+| `auto-version.yml` | push to `main`/`master`, manual dispatch | **automatic semantic-version bump** from commits → signed APK + AAB → official `Lockify vX.Y.Z` release (only when a `feat`/`fix`/`perf`/`security`/breaking change is present) |
+| `auto-release.yml` | push to `main`/`master`, manual dispatch | **per-commit** signed prerelease build (`auto-build-*`), only for pushes that do **not** warrant an official release |
+| `release.yml` | push tag `v*.*.*`, manual dispatch (version input) | manual/official signed release path (same outputs as `auto-version.yml`) |
 | `nightly.yml` | nightly schedule, manual dispatch | debug build + tests, uploads a `Nightly Build` artifact (no release) |
+| `security.yml` | push, PR, weekly schedule, dispatch | secret/keystore scan, Android release-config audit, PR dependency review |
+| `issue-detection.yml` | on failure of CI/release workflows | opens/updates a deduplicated GitHub Issue with failure context |
+| `automated-fix.yml` | manual dispatch (issue #) or `auto-fix` label | applies safe deterministic fixes on a branch, validates, opens a PR (never touches `main`) |
 
-### Automatic build releases (every commit)
+### Automatic versioning & official releases
 
-Every push to the default branch triggers `auto-release.yml`, which runs tests +
-lint, builds and signs the APK and AAB, verifies signatures and version,
-generates checksums and detailed release notes (with build + commit info), and
-publishes a **prerelease** GitHub Release:
+Every push to the default branch runs `auto-version.yml`, which calculates the
+next version from [Conventional Commits](https://www.conventionalcommits.org)
+since the last tag:
+
+| Commit type | Bump | Example |
+| --- | --- | --- |
+| `fix:` / `perf:` / `security:` | PATCH | 1.2.3 → 1.2.4 |
+| `feat:` | MINOR | 1.2.3 → 1.3.0 |
+| `feat!:` / `BREAKING CHANGE:` | MAJOR | 1.2.3 → 2.0.0 |
+| docs / chore / ci / refactor / test only | none | no official release |
+
+When a bump is warranted it builds and signs the APK + AAB, enforces strict
+version consistency, updates `CHANGELOG.md`, creates the tag, and publishes the
+official release — all values are guaranteed identical:
 
 ```text
-Push to main  →  Auto Release workflow  →  signed APK + AAB  →  prerelease GitHub Release
+versionName = tag (vX.Y.Z) = release title (Lockify vX.Y.Z)
+            = Lockify-vX.Y.Z.apk = Lockify-vX.Y.Z.aab = CHANGELOG heading
 ```
 
-- **Tag / build id:** `auto-build-<run-number>-<short-sha>` (unique per commit; re-runs are idempotent).
-- **Version:** `versionName = <latest-official>-build.<run-number>`, `versionCode = <run-number>` (strictly increasing).
-- **Assets:** `Lockify-v<version>-release.apk`, `Lockify-v<version>-release.aab`, `Lockify-v<version>-SHA256SUMS.txt`, and `Lockify-v<version>-mapping.txt`.
-- These builds are **prereleases** and never take the repository's "Latest release" badge — that is reserved for official `v*.*.*` releases, which are produced separately by `release.yml`.
+`versionCode = MAJOR*1_000_000 + MINOR*1_000 + PATCH` (deterministic, monotonic).
+The changelog/tag commit is pushed with `GITHUB_TOKEN`, which does not re-trigger
+workflows, so there are no release loops.
 
-Find the newest automated APK/AAB on the [Releases page](https://github.com/itisuniqueofficial-gh/lockify/releases) at the top of the list (marked *Pre-release*). A failed build never publishes a release.
+### Per-commit prerelease builds
 
-To trigger one manually: *Actions → Auto Release (per-commit build) → Run workflow*.
+Pushes that do **not** warrant an official release (docs/chore/ci-only) instead
+produce a signed **prerelease** via `auto-release.yml`, so every commit still has
+a downloadable build:
+
+- **Tag / build id:** `auto-build-<run-number>-<short-sha>` (unique; re-runs idempotent).
+- **Version:** `versionName = <latest-official>-build.<run-number>`, `versionCode = <run-number>`.
+- Marked **prerelease** with `make_latest: false`, so it never takes the repo's "Latest release" badge (reserved for official `vX.Y.Z` releases).
+
+The two push workflows are mutually exclusive — exactly one build/release is
+produced per push. A failed build never publishes a release.
 
 ### Cut a release
 
@@ -227,8 +275,8 @@ codes. `versionName` and `versionCode` are injected into the build via
 Each GitHub Release contains:
 
 ```text
-Lockify-v<version>-release.apk      # direct installation
-Lockify-v<version>-release.aab      # Google Play upload
+Lockify-v<version>.apk              # direct installation
+Lockify-v<version>.aab              # Google Play upload
 Lockify-v<version>-SHA256SUMS.txt   # checksums
 Lockify-v<version>-mapping.txt      # R8/ProGuard mapping (deobfuscation)
 ```

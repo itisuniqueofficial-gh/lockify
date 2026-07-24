@@ -1,0 +1,93 @@
+name: Security
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  schedule:
+    - cron: "0 3 * * 1" # Mondays 03:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: security-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  secret-scan:
+    name: Secret & keystore scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fail if committed keystores or key material exist
+        run: |
+          set -euo pipefail
+          if git ls-files | grep -iE '\.(jks|keystore|p12|pfx)$|\.jks\.base64$|(^|/)keystore\.properties$|-service-account\.json$'; then
+            echo "::error::Signing/keystore material must never be committed. Use GitHub Secrets."
+            exit 1
+          fi
+          echo "No committed keystores or key material."
+
+      - name: Heuristic secret scan
+        run: |
+          set -euo pipefail
+          # Scan tracked text files for obvious hardcoded secrets. Excludes docs
+          # and the web-app marketing site.
+          PATTERN='-----BEGIN( RSA| EC| OPENSSH| PGP)? PRIVATE KEY-----|AKIA[0-9A-Z]{16}|ghp_[A-Za-z0-9]{36}|xox[baprs]-[A-Za-z0-9-]+'
+          MATCHES="$(git grep -nIE "$PATTERN" -- ':!*.md' ':!web-app/**' ':!docs/**' 2>/dev/null || true)"
+          if [ -n "$MATCHES" ]; then
+            echo "::error::Potential hardcoded secret detected:"
+            printf '%s\n' "$MATCHES"
+            exit 1
+          fi
+          echo "No hardcoded secrets detected."
+
+  android-config-audit:
+    name: Android release config audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Audit manifest and build configuration
+        run: |
+          set -euo pipefail
+          fail=0
+          MANIFEST="app/src/main/AndroidManifest.xml"
+
+          if grep -qE 'android:debuggable="true"' "$MANIFEST"; then
+            echo "::error::android:debuggable=\"true\" must not be set in the manifest."; fail=1
+          fi
+          if grep -qE 'android:usesCleartextTraffic="true"' "$MANIFEST"; then
+            echo "::warning::usesCleartextTraffic=\"true\" is set; confirm this is intended."
+          fi
+          # allowBackup should be false for a security app to avoid data extraction.
+          if grep -qE 'android:allowBackup="true"' "$MANIFEST"; then
+            echo "::warning::android:allowBackup=\"true\"; consider disabling for a lock app."
+          fi
+          # Release build must be minified and must not be debuggable.
+          if ! grep -qE 'isMinifyEnabled\s*=\s*true' app/build.gradle.kts; then
+            echo "::error::release build must set isMinifyEnabled = true."; fail=1
+          fi
+          if grep -qE 'isDebuggable\s*=\s*true' app/build.gradle.kts; then
+            echo "::error::release build must not be debuggable."; fail=1
+          fi
+          [ "$fail" -eq 0 ] && echo "Android release configuration audit passed."
+          exit $fail
+
+  dependency-review:
+    name: Dependency review
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Dependency review
+        uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: high

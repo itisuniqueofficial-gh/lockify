@@ -35,16 +35,29 @@ android {
             storePassword = signingValue("KEYSTORE_PASSWORD")
             keyAlias = signingValue("KEY_ALIAS")
             keyPassword = signingValue("KEY_PASSWORD")
+            // Enable every APK signature scheme. v2/v3 are the functional
+            // requirement for minSdk 26+, but also enabling v1 (JAR) maximises
+            // install compatibility across OEM/sideload paths. Broad, valid
+            // signing prevents "App not installed" from signature-scheme gaps.
+            enableV1Signing = true
+            enableV2Signing = true
+            enableV3Signing = true
         }
     }
 
-    // A release keystore is only present in CI (from GitHub Secrets) or a
-    // properly configured local machine. When it is absent we fall back to the
-    // debug signing config so that `assembleRelease`/`bundleRelease` still
-    // produce a (debug-signed) artifact for local verification instead of
-    // failing the build. CI provides the real keystore, so production releases
-    // are always release-signed.
+    // Release-signing policy (prevents the most common "App not installed"
+    // cause — inconsistent or missing signatures):
+    //   * A real release keystore (CI GitHub Secrets or a configured machine)
+    //     is used whenever present, so every published build shares ONE stable
+    //     signing certificate and installs cleanly as an update.
+    //   * A release must NEVER be published debug-signed or unsigned. Debug
+    //     signing for a release is only allowed as an explicit local
+    //     convenience via -PallowDebugSigningForRelease=true.
+    //   * Otherwise the release build FAILS loudly at validateSigningRelease
+    //     rather than emitting an unsigned/mis-signed artifact.
     val hasReleaseKeystore = !signingValue("KEYSTORE_FILE").isNullOrBlank()
+    val allowDebugSigningForRelease =
+        signingValue("allowDebugSigningForRelease")?.toBoolean() == true
 
     buildTypes {
         release {
@@ -54,10 +67,13 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            signingConfig = if (hasReleaseKeystore) {
-                signingConfigs.getByName("release")
-            } else {
-                signingConfigs.getByName("debug")
+            signingConfig = when {
+                hasReleaseKeystore -> signingConfigs.getByName("release")
+                allowDebugSigningForRelease -> signingConfigs.getByName("debug")
+                // No keystore and not explicitly allowed: keep the release
+                // config (with no storeFile) so validateSigningRelease fails
+                // with a clear error instead of producing an unsigned APK.
+                else -> signingConfigs.getByName("release")
             }
         }
     }
