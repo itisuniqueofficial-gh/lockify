@@ -275,7 +275,7 @@ jobs:
           cat "$NOTES"
 
       - name: Create / update automated GitHub Release (prerelease)
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           name: Lockify Automated Build #${{ env.BUILD_NUMBER }}
           tag_name: ${{ env.TAG }}
