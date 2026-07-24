@@ -117,16 +117,141 @@ On Windows PowerShell:
 .\gradlew.bat assembleDebug
 ```
 
-### Signed Play Store AAB builds
+### Build a release locally
 
-See `DOCS-GITHUB.md` for the fully automated GitHub Actions signed AAB release setup, automatic patch tags, GitHub Releases, and Play Console upload steps.
+```bash
+# Debug build
+./gradlew :app:assembleDebug
+
+# Release build (falls back to debug signing if no keystore is configured)
+./gradlew :app:assembleRelease :app:bundleRelease
+```
+
+To produce a *release-signed* build locally, provide the signing inputs as
+Gradle properties or environment variables: `KEYSTORE_FILE`, `KEYSTORE_PASSWORD`,
+`KEY_ALIAS`, `KEY_PASSWORD`.
+
+## Continuous Integration & Releases
+
+Lockify uses GitHub Actions for a fully automated, secure release pipeline.
+
+### Workflows
+
+| Workflow | Trigger | What it does |
+| --- | --- | --- |
+| `ci.yml` | push to `main`/`master`/`develop`, manual dispatch | wrapper validation, lint, unit tests, debug APK, uploads reports & APK |
+| `pull-request.yml` | pull requests | lint, unit tests, debug build verification (merge gate) |
+| `release.yml` | push tag `v*.*.*`, manual dispatch (version input) | full signed release: tests, lint, signed APK + AAB, signature/version verification, checksums, release notes, GitHub Release |
+| `nightly.yml` | nightly schedule, manual dispatch | debug build + tests, uploads a `Nightly Build` artifact (no release) |
+
+### Cut a release
+
+Everyday development just needs a push — CI runs automatically:
+
+```bash
+git add .
+git commit -m "feat: improve app locking"
+git push
+```
+
+Publishing a production release is intentional and tag-driven:
+
+```bash
+git tag v1.2.0
+git push origin v1.2.0
+```
+
+That single tag push triggers:
+
+```text
+Push tag v1.2.0
+      ↓
+Resolve & validate version (semver)
+      ↓
+Run unit tests + lint
+      ↓
+Build signed release APK + AAB
+      ↓
+Verify signatures, package id, versionName/versionCode
+      ↓
+Generate SHA-256 checksums
+      ↓
+Generate release notes (from Conventional Commits)
+      ↓
+Create GitHub Release + upload APK, AAB, SHA256SUMS, mapping
+```
+
+Alternatively, maintainers can run the **Release** workflow manually via
+*Actions → Release → Run workflow* and enter a version (e.g. `1.2.0`). The
+workflow validates that the version is new and newer than the latest release,
+then creates and pushes the tag for you.
+
+### Versioning
+
+Lockify follows [Semantic Versioning](https://semver.org): `MAJOR.MINOR.PATCH`.
+The Android `versionCode` is derived deterministically from the version by
+`scripts/version.sh`:
+
+```text
+versionCode = MAJOR * 1_000_000 + MINOR * 1_000 + PATCH
+# e.g. 1.2.0 -> 1002000
+```
+
+This guarantees monotonically increasing, reproducible, collision-free version
+codes. `versionName` and `versionCode` are injected into the build via
+`-PVERSION_NAME` / `-PVERSION_CODE` (or the matching environment variables).
+
+### Release artifacts
+
+Each GitHub Release contains:
+
+```text
+Lockify-v<version>-release.apk      # direct installation
+Lockify-v<version>-release.aab      # Google Play upload
+Lockify-v<version>-SHA256SUMS.txt   # checksums
+Lockify-v<version>-mapping.txt      # R8/ProGuard mapping (deobfuscation)
+```
+
+Verify a downloaded build:
+
+```bash
+sha256sum -c Lockify-v<version>-SHA256SUMS.txt
+```
+
+### Required GitHub Secrets
+
+Store these in the repository under a protected **`production`** environment
+(*Settings → Environments → production → Secrets*). Never commit their values.
+
+| Secret | Purpose |
+| --- | --- |
+| `ANDROID_KEYSTORE_BASE64` | base64-encoded release keystore (`base64 -w0 release.jks`) |
+| `ANDROID_KEYSTORE_PASSWORD` | keystore password |
+| `ANDROID_KEY_ALIAS` | signing key alias |
+| `ANDROID_KEY_PASSWORD` | signing key password |
+| `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` | *(future)* Google Play publishing — not required yet |
+
+The release workflow decodes the keystore to a temporary file, signs the APK
+and AAB, verifies the signatures, and shreds the keystore at the end of the run.
+Passwords are passed only through GitHub Secrets and are never printed.
+
+### Maintainer operations
+
+- **Re-run a failed release:** re-run the failed *Release* workflow run from the
+  Actions tab. The build is reproducible; existing valid assets are not deleted.
+- **Rotate signing keys:** generate a new keystore, update the four
+  `ANDROID_*` secrets, and cut a new release. (Note: Play requires the same
+  upload key or Play App Signing key rotation.)
+- **Recover from a bad tag:** delete the tag and its draft/release, fix the
+  issue, and push the tag again.
+- **Branch protection (recommended):** require the `Pull Request` checks to pass
+  before merging into `main`.
 
 Additional production notes:
 - `PRIVACY.md`
 - `SECURITY.md`
 - `PLAY-STORE-COMPLIANCE.md`
-- `RELEASE.md`
-- `TESTING.md`
+- `CONTRIBUTING.md`
 - `docs/permission-guide.md`
 - `docs/manual-qa-checklist.md`
 

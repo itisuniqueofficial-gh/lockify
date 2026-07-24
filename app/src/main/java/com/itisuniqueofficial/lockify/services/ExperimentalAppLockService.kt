@@ -16,6 +16,7 @@ import android.util.Log
 import android.view.inputmethod.InputMethodManager
 import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
+import androidx.core.app.ServiceCompat
 import androidx.core.content.getSystemService
 import com.itisuniqueofficial.lockify.R
 import com.itisuniqueofficial.lockify.core.broadcast.DeviceAdmin
@@ -312,7 +313,7 @@ class ExperimentalAppLockService : Service() {
             } else 0
 
             if (type != 0) {
-                startForeground(NOTIFICATION_ID, notification, type)
+                ServiceCompat.startForeground(this, NOTIFICATION_ID, notification, type)
             } else {
                 startForeground(NOTIFICATION_ID, notification)
             }

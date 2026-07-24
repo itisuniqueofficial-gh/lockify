@@ -33,6 +33,10 @@ Command used by auto-release CI:
 ```
 
 ## GitHub Actions
-- `.github/workflows/android.yml` builds debug only and should not run `assemble` without signing secrets.
-- `.github/workflows/android-auto-release.yml` creates the next patch tag, builds signed APK/AAB, and creates a GitHub Release.
+- `.github/workflows/ci.yml` — runs on pushes and manual dispatch: wrapper validation, lint, unit tests, and a debug APK build (no signing).
+- `.github/workflows/pull-request.yml` — runs on pull requests: lint, unit tests, and debug build verification (merge gate).
+- `.github/workflows/release.yml` — runs on `v*.*.*` tag pushes or manual dispatch: builds and signs the APK + AAB, verifies signatures/version, generates checksums and release notes, and creates the GitHub Release.
+- `.github/workflows/nightly.yml` — scheduled debug build + tests; uploads a `Nightly Build` artifact only (never publishes a release).
 - Editing workflow files requires a GitHub token with `workflow` scope.
+
+See the README "Continuous Integration & Releases" section for the full flow and required secrets.

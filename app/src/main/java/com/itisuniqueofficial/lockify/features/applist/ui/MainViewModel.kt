@@ -2,6 +2,7 @@
 
 import android.app.Application
 import android.content.pm.ApplicationInfo
+import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.itisuniqueofficial.lockify.core.utils.appLockRepository
@@ -35,7 +36,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             apps.filter { it.packageName in locked }
                 .filter { it.matchesQuery(query) }
                 .sortedBy { it.packageName }
-        }.stateIn(
+        }.flowOn(Dispatchers.IO).stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000L),
             initialValue = emptyList()
@@ -46,7 +47,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             apps.filterNot { it.packageName in locked }
                 .filter { it.matchesQuery(query) }
                 .sortedBy { it.packageName }
-        }.stateIn(
+        }.flowOn(Dispatchers.IO).stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000L),
             initialValue = emptyList()
@@ -81,7 +82,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 }
                 _allApps.value = apps
             } catch (e: Exception) {
-                e.printStackTrace()
+                Log.e("MainViewModel", "Failed to load installed applications", e)
                 _allApps.value = emptySet()
             } finally {
                 _isLoading.value = false

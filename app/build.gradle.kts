@@ -17,8 +17,11 @@ android {
         applicationId = "com.itisuniqueofficial.lockify"
         minSdk = 26
         targetSdk = 36
-        versionCode = System.getenv("VERSION_CODE")?.toIntOrNull() ?: 4
-        versionName = System.getenv("VERSION_NAME") ?: "1.0.3"
+        // Version is injected by CI (release workflow / version.sh) via either a
+        // Gradle property (-PVERSION_CODE / -PVERSION_NAME) or an environment
+        // variable. Fallbacks are used for local development builds.
+        versionCode = (signingValue("VERSION_CODE"))?.toIntOrNull() ?: 4
+        versionName = signingValue("VERSION_NAME") ?: "1.0.3"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -35,6 +38,14 @@ android {
         }
     }
 
+    // A release keystore is only present in CI (from GitHub Secrets) or a
+    // properly configured local machine. When it is absent we fall back to the
+    // debug signing config so that `assembleRelease`/`bundleRelease` still
+    // produce a (debug-signed) artifact for local verification instead of
+    // failing the build. CI provides the real keystore, so production releases
+    // are always release-signed.
+    val hasReleaseKeystore = !signingValue("KEYSTORE_FILE").isNullOrBlank()
+
     buildTypes {
         release {
             isMinifyEnabled = true
@@ -43,7 +54,11 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            signingConfig = signingConfigs.getByName("release")
+            signingConfig = if (hasReleaseKeystore) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
+            }
         }
     }
 
@@ -58,6 +73,23 @@ android {
 
     buildFeatures {
         compose = true
+    }
+
+    lint {
+        // Fail the build (and therefore CI) on any lint error.
+        abortOnError = true
+        checkReleaseBuilds = true
+        // Emit machine- and human-readable reports for CI artifact upload.
+        sarifReport = true
+        xmlReport = true
+        htmlReport = true
+        textReport = true
+        // `LocalContextGetResourceValueCall` (shipped by the Compose UI lint) is
+        // a false positive for this project: every flagged call reads a static
+        // string resource inside a side-effecting, non-composable scope
+        // (Toast.makeText, BiometricPrompt.Builder, Intent.putExtra, onClick
+        // lambdas) where the @Composable stringResource() cannot be invoked.
+        disable += "LocalContextGetResourceValueCall"
     }
 
     dependenciesInfo {

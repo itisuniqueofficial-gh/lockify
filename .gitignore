@@ -14,6 +14,10 @@ local.properties
 *.p12
 *.pem
 *.key
+# base64-encoded keystores (only ever belong in GitHub Secrets, never on disk in the repo)
+*.jks.base64
+*.keystore.base64
+*.base64
 keystore.properties
 release-key.*
 upload-key.*
@@ -22,3 +26,7 @@ signing.properties
 .env.*
 release/
 *.dm
+# Google Play publishing credentials (never commit)
+google-play-service-account*.json
+play-service-account*.json
+*-service-account.json
