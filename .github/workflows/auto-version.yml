@@ -48,7 +48,7 @@ jobs:
       version_code: ${{ steps.calc.outputs.VERSION_CODE }}
       should_release: ${{ steps.decide.outputs.should_release }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -95,7 +95,7 @@ jobs:
       TAG: ${{ needs.plan.outputs.tag }}
       BUMP: ${{ needs.plan.outputs.bump }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
