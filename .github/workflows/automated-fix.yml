@@ -71,7 +71,7 @@ jobs:
 
       - name: Set up Gradle
         if: steps.fix.outputs.changed == 'true'
-        uses: gradle/actions/setup-gradle@v4
+        uses: gradle/actions/setup-gradle@v6
 
       - name: Validate (tests, lint, debug build)
         if: steps.fix.outputs.changed == 'true'
