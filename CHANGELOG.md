@@ -1,5 +1,17 @@
 # Changelog
 
+## Lockify v1.0.7 — 2026-07-24
+
+### Fixed
+
+- prevent "App not installed" via consistent, verified signing
+
+### Changed
+
+- add per-commit automated APK/AAB prerelease pipeline
+- add automated CI/CD, signing & release pipeline; fix build/perf bugs
+
+
 ## 1.1.0 — Unreleased
 Added
 - Hidden vault: encrypt photos, videos, and files with AES-256-GCM keyed from the Android KeyStore (streaming, large-file safe).
