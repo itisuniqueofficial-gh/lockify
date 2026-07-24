@@ -14,7 +14,7 @@ composeBom = "2026.02.01"
 material3 = "1.5.0-alpha18"
 materialIconsCore = "1.7.8"
 navigationCompose = "2.9.8"
-work = "2.10.5"
+work = "2.11.2"
 
 [libraries]
 androidx-activity-ktx = { module = "androidx.activity:activity-ktx", version.ref = "activityCompose" }
